@@ -28,12 +28,12 @@ public class Connection {
     }
 
     public void send(String message) {
-        char[] lengthArray = new char[HEADER];
-        char[] tempArray = String.valueOf(message.length()).toCharArray();
+        message = String.format("%04d", message.length()) + message;
+        if(message.length() >= 10000) {
+            System.out.println("[ERROR] Message too long");
+            return;
+        }
 
-        System.arraycopy(tempArray, 0, lengthArray, 0, tempArray.length);
-
-        message = String.valueOf(lengthArray) + message;
         System.out.println(message);
         try {
             out.write(message.getBytes());

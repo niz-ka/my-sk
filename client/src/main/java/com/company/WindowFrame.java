@@ -3,11 +3,11 @@ package com.company;
 import javax.swing.*;
 import java.awt.*;
 
-public class Frame extends JFrame {
+public class WindowFrame extends JFrame {
 
-    public Frame() {
+    public WindowFrame() {
         this.setMinimumSize(new Dimension(400, 300));
-        this.setApplicationPanel(new Welcome().getPanel());
+        this.setApplicationPanel(new Welcome().panel);
         this.setTitle("Quiz.App");
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setVisible(true);
