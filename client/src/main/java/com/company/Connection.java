@@ -46,10 +46,10 @@ public class Connection {
 
     public String receive() {
         try {
-            byte[] bytes = in.readNBytes(4);
-            return new String(bytes);
+            int length = Integer.parseInt(new String(in.readNBytes(4)));
+            return new String(in.readNBytes(length));
         } catch(java.io.IOException ex) {
-            System.out.println("[Exception] readUTF()" + ex);
+            System.out.println("[Exception] read" + ex);
             return null;
         }
     }

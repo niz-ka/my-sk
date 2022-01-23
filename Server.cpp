@@ -150,7 +150,15 @@ int Server::stringToInt(const std::string& number) {
 
 size_t Server::sendData(int socket, const std::string& data)
 {
-    const char* buf = data.c_str();
+    const char* tmp = data.c_str();
+
+    char* buf = new char[strlen(tmp) + 4];
+    if( sprintf(buf, "%04zu%s", strlen(tmp), tmp) < 0) {
+        perror("[ERROR] sprintf()");
+        delete [] buf;
+        return -1;
+    }
+
     const size_t length = strlen(buf);
 
     size_t total = 0;
@@ -161,6 +169,7 @@ size_t Server::sendData(int socket, const std::string& data)
         bytes = send(socket, buf + total, bytesLeft, 0 );
         if(bytes == -1) {
             perror("[ERROR] send()");
+            delete [] buf;
             return -1;
         }
 
@@ -168,6 +177,7 @@ size_t Server::sendData(int socket, const std::string& data)
         bytesLeft -= bytes;
     }
 
+    delete [] buf;
     return total;
 }
 
