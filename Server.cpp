@@ -16,9 +16,8 @@
 // TODO - coś lepszego niż define
 #define SERVER_PORT 5050
 #define HEADER 4        // Długość nagłówka, ten z kolei określa długość wiadomości
-#define ACTION_HEADER 4  // Długość napisu-akcji, np. MAKE do tworzenia gry
 
-Server::Server() : socketFd(0), address({}), clients({}), pollfds({}) {}
+Server::Server() : socketFd(0), address({}), clients({}), pollfds({}), games({}) {}
 
 size_t Server::getNumberOfClients() const {
     return this->clients.size();
@@ -37,6 +36,7 @@ void Server::disconnectClient(int clientFd) {
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
 
+    this->games.erase(clientFd);
     this->clients.erase(clientFd);
 }
 
@@ -98,7 +98,7 @@ void Server::terminate(const std::string& description) {
  * @return liczbę przeczytanych bajtów / 0 gdy klient się rozłączył / -1 gdy wystąpił błąd
  */
 size_t Server::readData(int clientFd, int length, std::string& data) {
-    char* message = new char[length+1];
+    char* message = new char[length];
     size_t bytes;
     size_t bytesRead = 0;
 
@@ -119,9 +119,7 @@ size_t Server::readData(int clientFd, int length, std::string& data) {
 
         bytesRead += bytes;
     }
-
-    message[length] = '\0';
-    data = std::string(message);
+    data = std::string(message, length);
     delete[] message;
 
     return bytesRead;
@@ -150,21 +148,85 @@ int Server::stringToInt(const std::string& number) {
 
 }
 
+size_t Server::sendData(int socket, const std::string& data)
+{
+    const char* buf = data.c_str();
+    const size_t length = strlen(buf);
+
+    size_t total = 0;
+    size_t bytes = 0;
+    size_t bytesLeft = length;
+
+    while(total < length) {
+        bytes = send(socket, buf + total, bytesLeft, 0 );
+        if(bytes == -1) {
+            perror("[ERROR] send()");
+            return -1;
+        }
+
+        total += bytes;
+        bytesLeft -= bytes;
+    }
+
+    return total;
+}
+
 /**
  * Podejmuje akcję w zależności od otrzymanej wiadomości
  * @param message wiadomość przesłana przez klienta
  */
-void Server::makeAction(const std::string& message) {
-    std::cout << "[MESSAGE] " << message << std::endl;
+void Server::makeAction(const std::string& message, const int clientFd) {
+    //std::cout << "[MESSAGE] " << message << std::endl;
 
-    std::string action = message.substr(0, ACTION_HEADER);
+    std::string action = message.substr(0, 1);
 
-    // TODO - może jakiś enum class ...
-    if(action == "MAKE") {
-        std::cout << "[ACTION] The game is created..." << std::endl;
+    if(action == "m") {
+        std::string prefix = message.substr(1, 1);
+        if(prefix == "s") {
+            if(games.find(clientFd) != games.end()) {
+                printf("[ERROR] Game with socket %d already exists!\n", clientFd);
+                return;
+            }
+            this->games[clientFd] = Game(clientFd);
+        }
+        else if(prefix == "e") {
+            this->sendData(clientFd, "Hello");
+        }
+        else {
+            std::string type = message.substr(2, 1);
+            if(type == "q") {
+                this->games[clientFd].getQuestions().emplace_back();
+                int number = stringToInt(prefix);
+                this->games[clientFd].getQuestions().back().setQuestion(message.substr(3));
+                this->games[clientFd].getQuestions().back().setNumber(number);
+            }
+            else if(type == "a") {
+                this->games[clientFd].getQuestions().back().setAnswerA(message.substr(3));
+            }
+
+            else if(type == "b") {
+                this->games[clientFd].getQuestions().back().setAnswerB(message.substr(3));
+            }
+
+            else if(type == "c") {
+                this->games[clientFd].getQuestions().back().setAnswerC(message.substr(3));
+            }
+
+            else if(type == "d") {
+                this->games[clientFd].getQuestions().back().setAnswerD(message.substr(3));
+            }
+
+            else if(type == "p") {
+                this->games[clientFd].getQuestions().back().setCorrect(message.substr(3));
+            }
+
+            else {
+                printf("[ERROR] Unknown question part type!\n");
+                return;
+            }
+        }
     }
 
-    // ...
 }
 
 /**
@@ -187,14 +249,11 @@ void Server::run() {
     this->address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     this->address.sin_port = htons(SERVER_PORT);
     this->address.sin_family = AF_INET;
-    memset(&this->address.sin_zero, 0, sizeof(this->address.sin_zero));
-
 
     if(bind(this->socketFd, (sockaddr*)&this->address, sizeof(sockaddr_in)) == -1) {
         this->terminate("bind()");
     }
 
-    // TODO magic value
     if(listen(this->socketFd, 32) == -1) {
         this->terminate("listen()");
     }
@@ -230,7 +289,7 @@ void Server::run() {
 
             // Wszystko inne niż POLLIN to błąd!
             if(pollfds[i].revents != POLLIN) {
-                this->terminate("poll()");
+                printf("[ERROR] revents != POLLIN\n");
             }
 
             // Zgłoszenie na gnieździe nasłuchującym
@@ -238,13 +297,12 @@ void Server::run() {
                 int clientSocket = this->connectClient();
                 if(clientSocket != -1) {
                     this->pollfds.push_back(pollfd{clientSocket, POLLIN, 0});
-                    ++pollfds_size;
+                    pollfds_size = pollfds.size();
                 }
             } else {
                 printf("[INFO] Descriptor is readable\n");
                 int clientFd = pollfds[i].fd;
 
-                // TODO - zrobić porządek, skomplikowana obsługa błędów
 
                 // Odbierz długość wiadomości
                 std::string messageLength;
@@ -252,7 +310,8 @@ void Server::run() {
                 if(bytes == 0) {
                     this->disconnectClient(clientFd);
                     pollfds.erase(pollfds.begin() + (long)i);
-                    --pollfds_size; --i;
+                    pollfds_size = pollfds.size();
+                    --i;
                 }
 
                 if(bytes == 0 || bytes == -1) continue;
@@ -267,13 +326,14 @@ void Server::run() {
                 if(bytes == 0) {
                     this->disconnectClient(clientFd);
                     pollfds.erase(pollfds.begin() + (long)i);
-                    --pollfds_size; --i;
+                    pollfds_size = pollfds.size();
+                    --i;
                 }
 
                 if(bytes == 0 || bytes == -1) continue;
 
                 // Podejmij akcję w zależności od wiadomości
-                this->makeAction(message);
+                this->makeAction(message, clientFd);
             }
 
 

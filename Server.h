@@ -12,12 +12,14 @@
 #include <sys/poll.h>
 #include <vector>
 #include "Client.h"
+#include "Game.h"
 
 class Server {
     int socketFd;
     sockaddr_in address;
     std::unordered_map<int, Client> clients;
     std::vector<pollfd> pollfds;
+    std::unordered_map<int, Game> games;
 public:
     Server();
     void run();
@@ -29,7 +31,8 @@ private:
     int connectClient();
     static size_t readData(int clientFd, int length, std::string& data);
     static int stringToInt(const std::string& number);
-    void makeAction(const std::string &message);
+    void makeAction(const std::string &message, const int clientFd);
+    size_t sendData(int socket, const std::string& data);
 };
 
 

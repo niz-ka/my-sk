@@ -2,6 +2,7 @@ package com.company;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 
 public class Connection {
@@ -40,6 +41,16 @@ public class Connection {
         }
         catch(java.io.IOException ex) {
             System.out.println("[Exception] write()" + ex);
+        }
+    }
+
+    public String receive() {
+        try {
+            byte[] bytes = in.readNBytes(4);
+            return new String(bytes);
+        } catch(java.io.IOException ex) {
+            System.out.println("[Exception] readUTF()" + ex);
+            return null;
         }
     }
 }

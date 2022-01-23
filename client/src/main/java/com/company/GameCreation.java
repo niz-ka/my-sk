@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class GameCreation {
     protected JPanel panel;
@@ -35,6 +36,21 @@ public class GameCreation {
         newQuestionButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
+                if(question.getText().isEmpty() ||
+                        answerA.getText().isEmpty() ||
+                        answerB.getText().isEmpty() ||
+                        answerC.getText().isEmpty() ||
+                        answerD.getText().isEmpty()
+                ) {
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Pytanie oraz odpowiedzi nie mogą być puste.",
+                            "Błąd",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
+
+
                 questions.add(new Question(
                         questionNumber,
                         question.getText(),
@@ -59,6 +75,17 @@ public class GameCreation {
         createButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
+                if(questions.size() == 0) {
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Proszę dodać co najmniej 1 pytanie.",
+                            "Błąd",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
+
+
+                Application.connection.send("ms");
                 for(Question question : questions) {
                     String prefix = "m" + question.getNumber();
                     Application.connection.send(prefix + "q" + question.getQuestion());
@@ -68,6 +95,9 @@ public class GameCreation {
                     Application.connection.send(prefix + "d" + question.getAnswerD());
                     Application.connection.send(prefix + "p" + question.getCorrect());
                 }
+                Application.connection.send("me");
+                String message = Application.connection.receive();
+                System.out.println(message);
             }
         });
     }
