@@ -96,8 +96,9 @@ public class GameCreation {
                     Application.connection.send(prefix + "p" + question.getCorrect());
                 }
                 Application.connection.send("me");
-                String message = Application.connection.receive();
-                System.out.println(message);
+
+                String gameCode = Application.connection.receive();
+                Application.frame.setApplicationPanel(new OwnerView(gameCode).panel);
             }
         });
     }
