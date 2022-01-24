@@ -11,7 +11,7 @@ public class Application {
         frame = new WindowFrame();
 
         try {
-            connection = new Connection("127.0.0.1", 5050);
+            connection = new Connection("192.168.0.24", 5050);
         } catch(java.io.IOException ex) {
             JOptionPane.showMessageDialog(
                     null,
