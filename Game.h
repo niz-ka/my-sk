@@ -13,9 +13,14 @@ class Game {
     int ownerSocket;
     std::vector<Question> questions;
     int code;
+    bool started;
 public:
     Game();
     explicit Game(int socket);
+
+    bool isStarted() const;
+
+    void setStarted(bool Started);
 
     int getOwnerSocket() const;
 

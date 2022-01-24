@@ -22,13 +22,20 @@ public class NickView {
                 return;
             }
             Application.connection.send("n" + nick);
-            if(Objects.equals(Application.connection.receive(), "ne")) {
+            String message = Application.connection.receive();
+            if(message.equals("ne")) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Pseudonim zajęty! Proszę wybrać inny",
                         "Błąd",
                         JOptionPane.INFORMATION_MESSAGE);
                 return;
+            } else if(message.equals("js")) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Gra już się toczy!",
+                        "Błąd",
+                        JOptionPane.INFORMATION_MESSAGE);
             }
 
             nickTextField.setVisible(false);

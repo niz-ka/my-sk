@@ -4,8 +4,8 @@
 
 #include "Game.h"
 
-Game::Game() : ownerSocket(0), questions({}), code(0) {}
-Game::Game(int socket) : ownerSocket(socket), questions({}), code(0) {}
+Game::Game() : ownerSocket(0), questions({}), code(0), started(false) {}
+Game::Game(int socket) : ownerSocket(socket), questions({}), code(0), started(false) {}
 
 int Game::getOwnerSocket() const {
     return ownerSocket;
@@ -29,4 +29,12 @@ int Game::getCode() const {
 
 void Game::setCode(int code) {
     Game::code = code;
+}
+
+bool Game::isStarted() const {
+    return started;
+}
+
+void Game::setStarted(bool started) {
+    Game::started = started;
 }

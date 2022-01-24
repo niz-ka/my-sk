@@ -267,7 +267,13 @@ void Server::makeAction(const std::string& message, const int clientFd) {
     } else if(action == "j") {
         int code = this->stringToInt(message.substr(1));
         for(auto& game : this->games) {
+
             if(game.second.getCode() == code) {
+                if(game.second.isStarted()) {
+                    this->sendData(clientFd, "js");
+                    return;
+                }
+
                 this->sendData(clientFd, "jo");
                 this->clients[clientFd].setGameOwnerSocket(game.first);
                 return;
@@ -276,19 +282,27 @@ void Server::makeAction(const std::string& message, const int clientFd) {
         this->sendData(clientFd, "jr");
     } else if(action == "n") {
         std::string nick = message.substr(1);
+
+        if(this->games[this->clients[clientFd].getGameOwnerSocket()].isStarted()) {
+            this->clients[clientFd].setGameOwnerSocket(-10);
+            this->sendData(clientFd, "js");
+            return;
+        }
+
         for(auto& client : this->clients) {
+
             if((clientFd != client.first) && nick == client.second.getNick()) {
                 this->sendData(clientFd, "ne");
                 return;
             }
         }
         this->clients[clientFd].setNick(nick);
-        printf("przed\n");
         this->sendData(clients[clientFd].getGameOwnerSocket(), nick);
-        printf("po\n");
         this->sendData(clientFd, "no");
-    } else if(action == "s") {
 
+    } else if(action == "s") {
+        this->games[clientFd].setStarted(true);
+        this->sendData(clientFd, "s");
     }
 
     else {

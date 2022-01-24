@@ -32,7 +32,14 @@ public class Welcome {
                     } else if(status.equals("jo")) {
                         System.out.println("[INFO] Joining");
                         Application.frame.setApplicationPanel(new NickView().panel);
-                    } else {
+                    } else if(status.equals("js")) {
+                        JOptionPane.showMessageDialog(
+                                null,
+                                "Gra już się toczy!",
+                                "Błąd",
+                                JOptionPane.INFORMATION_MESSAGE);
+                    }
+                    else {
                         System.out.println("[ERROR] Undefined join message!");
                     }
                 }
