@@ -34,11 +34,31 @@ void Server::disconnectClient(int clientFd) {
            this->clients[clientFd].getAddressPointer()->sin_port,
            this->getNumberOfClients()-1);
 
+
+//    // Usuń grę tego gracza (jeśli istnieje)
+//    if (this->games.find(clientFd) != this->games.end()) {
+//        std::vector<int> toRemove = {};
+//
+//        for(auto& client : this->clients) {
+//            if((client.first != clientFd) &&
+//            client.second.getGameOwnerSocket() == clientFd) {
+//                shutdown(client.first, SHUT_RDWR);
+//                close(client.first);
+//                toRemove.push_back(client.first);
+//            }
+//        }
+//
+//        for(auto& element : toRemove) {
+//            this->clients.erase(element);
+//        }
+//
+//    }
+
+    // Usuń dane tego klienta
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
-
-    this->games.erase(clientFd);
     this->clients.erase(clientFd);
+    this->games.erase(clientFd);
 }
 
 /**
@@ -77,7 +97,7 @@ void Server::terminate(const std::string& description) {
     perror(("[ERROR] " + description).c_str());
 
     // Zamknij gniazda klientów
-    for(auto client : this->clients) {
+    for(auto& client : this->clients) {
         shutdown(client.first, SHUT_RDWR);
         close(client.first);
     }
@@ -124,6 +144,7 @@ size_t Server::readData(int clientFd, int length, std::string& data) {
     data = std::string(message);
     delete[] message;
 
+    printf("[READ] %s\n", data.c_str());
     return bytesRead;
 }
 
@@ -179,6 +200,7 @@ size_t Server::sendData(int socket, const std::string& data)
         bytesLeft -= bytes;
     }
 
+    printf("[SEND] %s\n", data.c_str());
     delete [] buf;
     return total;
 }
@@ -243,14 +265,34 @@ void Server::makeAction(const std::string& message, const int clientFd) {
             }
         }
     } else if(action == "j") {
-        std::string code = message.substr(1);
+        int code = this->stringToInt(message.substr(1));
         for(auto& game : this->games) {
-            if(game.second.getCode() == this->stringToInt(code)) {
+            if(game.second.getCode() == code) {
                 this->sendData(clientFd, "jo");
+                this->clients[clientFd].setGameOwnerSocket(game.first);
                 return;
             }
         }
         this->sendData(clientFd, "jr");
+    } else if(action == "n") {
+        std::string nick = message.substr(1);
+        for(auto& client : this->clients) {
+            if((clientFd != client.first) && nick == client.second.getNick()) {
+                this->sendData(clientFd, "ne");
+                return;
+            }
+        }
+        this->clients[clientFd].setNick(nick);
+        printf("przed\n");
+        this->sendData(clients[clientFd].getGameOwnerSocket(), nick);
+        printf("po\n");
+        this->sendData(clientFd, "no");
+    } else if(action == "s") {
+
+    }
+
+    else {
+        printf("[ERROR] Unknown message action!\n");
     }
 
 }
@@ -326,9 +368,7 @@ void Server::run() {
                     pollfds_size = pollfds.size();
                 }
             } else {
-                printf("[INFO] Descriptor is readable\n");
                 int clientFd = pollfds[i].fd;
-
 
                 // Odbierz długość wiadomości
                 std::string messageLength;

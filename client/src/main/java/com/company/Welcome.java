@@ -5,8 +5,6 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import static com.company.Application.frame;
-
 public class Welcome {
     private JTextArea codeTextArea;
     private JButton joinButton;
@@ -16,7 +14,7 @@ public class Welcome {
     public Welcome() {
         createButton.addActionListener(actionEvent -> {
             if(Application.connection != null)
-                frame.setApplicationPanel(new GameCreation().panel);
+                Application.frame.setApplicationPanel(new GameCreation().panel);
         });
 
         joinButton.addActionListener(new ActionListener() {
@@ -32,7 +30,8 @@ public class Welcome {
                                 "Błąd",
                                 JOptionPane.INFORMATION_MESSAGE);
                     } else if(status.equals("jo")) {
-                        System.out.println("Join to game");
+                        System.out.println("[INFO] Joining");
+                        Application.frame.setApplicationPanel(new NickView().panel);
                     } else {
                         System.out.println("[ERROR] Undefined join message!");
                     }

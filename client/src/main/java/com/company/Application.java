@@ -18,7 +18,7 @@ public class Application {
                     "Błąd połączenia z serwerem. Proszę spróbować później.",
                     "Błąd",
                     JOptionPane.ERROR_MESSAGE);
-            System.out.println("[EXCEPTION]" + ex);
+            System.out.println("[EXCEPTION] " + ex);
         }
 
     }

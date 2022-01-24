@@ -36,9 +36,9 @@ public class Connection {
             return;
         }
 
-        System.out.println(message);
         try {
             out.write(message.getBytes());
+            System.out.println("[WRITE] " + message);
         }
         catch(java.io.IOException ex) {
             System.out.println("[Exception] write()" + ex);
@@ -48,7 +48,10 @@ public class Connection {
     public String receive() {
         try {
             int length = Integer.parseInt(new String(in.readNBytes(4)));
-            return new String(in.readNBytes(length));
+            System.out.println("[READ] length: " + length);
+            String message = new String(in.readNBytes(length));
+            System.out.println("[READ] " + message);
+            return message;
         } catch(java.io.IOException ex) {
             System.out.println("[Exception] read" + ex);
             return null;

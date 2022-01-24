@@ -4,10 +4,10 @@
 
 #include "Client.h"
 
-Client::Client() : socketFd(0), address({}) {}
+Client::Client() : socketFd(0), address({}), gameOwnerSocket(0) {}
 
 Client::Client(int socketFd, sockaddr_in address)
-: socketFd(socketFd), address(address) {}
+: socketFd(socketFd), address(address), gameOwnerSocket(0) {}
 
 int Client::getSocketFd() const {
     return this->socketFd;
@@ -15,4 +15,20 @@ int Client::getSocketFd() const {
 
 sockaddr_in* Client::getAddressPointer() {
     return &(this->address);
+}
+
+const std::string &Client::getNick() const {
+    return nick;
+}
+
+void Client::setNick(const std::string &nick) {
+    Client::nick = nick;
+}
+
+int Client::getGameOwnerSocket() const {
+    return gameOwnerSocket;
+}
+
+void Client::setGameOwnerSocket(int gameOwnerSocket) {
+    Client::gameOwnerSocket = gameOwnerSocket;
 }
