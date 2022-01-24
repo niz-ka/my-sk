@@ -12,7 +12,7 @@
 class Game {
     int ownerSocket;
     std::vector<Question> questions;
-
+    int code;
 public:
     Game();
     explicit Game(int socket);
@@ -24,6 +24,10 @@ public:
     std::vector<Question> &getQuestions();
 
     void setQuestions(const std::vector<Question> &questions);
+
+    int getCode() const;
+
+    void setCode(int code);
 };
 
 

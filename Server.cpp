@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <vector>
 #include <iostream>
+#include <random>
 #include "Server.h"
 
 // TODO - coś lepszego niż define
@@ -98,7 +99,7 @@ void Server::terminate(const std::string& description) {
  * @return liczbę przeczytanych bajtów / 0 gdy klient się rozłączył / -1 gdy wystąpił błąd
  */
 size_t Server::readData(int clientFd, int length, std::string& data) {
-    char* message = new char[length];
+    char* message = new char[length+1];
     size_t bytes;
     size_t bytesRead = 0;
 
@@ -119,7 +120,8 @@ size_t Server::readData(int clientFd, int length, std::string& data) {
 
         bytesRead += bytes;
     }
-    data = std::string(message, length);
+    message[length] = '\0';
+    data = std::string(message);
     delete[] message;
 
     return bytesRead;
@@ -137,7 +139,7 @@ int Server::stringToInt(const std::string& number) {
     try {
         numberInt = std::stoi(number);
     } catch (const std::invalid_argument& ia) {
-        perror("[ERROR] Conversion impossible");
+        printf("[ERROR] Conversion impossible (%s)\n", number.c_str());
         return -1;
     } catch(const std::out_of_range& ofr) {
         perror("[ERROR] Conversion out ouf range");
@@ -200,7 +202,12 @@ void Server::makeAction(const std::string& message, const int clientFd) {
             this->games[clientFd] = Game(clientFd);
         }
         else if(prefix == "e") {
-            this->sendData(clientFd, "Hello");
+            std::random_device dev;
+            std::mt19937 rng(dev());
+            std::uniform_int_distribution<std::mt19937::result_type> dist6(1000,9999);
+            int code = static_cast<int>(dist6(rng));
+            this->games[clientFd].setCode(code);
+            this->sendData(clientFd, std::to_string(code));
         }
         else {
             std::string type = message.substr(2, 1);
@@ -235,6 +242,15 @@ void Server::makeAction(const std::string& message, const int clientFd) {
                 return;
             }
         }
+    } else if(action == "j") {
+        std::string code = message.substr(1);
+        for(auto& game : this->games) {
+            if(game.second.getCode() == this->stringToInt(code)) {
+                this->sendData(clientFd, "jo");
+                return;
+            }
+        }
+        this->sendData(clientFd, "jr");
     }
 
 }
@@ -256,7 +272,7 @@ void Server::run() {
         this->terminate("setsockopt()");
     }
 
-    this->address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    this->address.sin_addr.s_addr = htonl(INADDR_ANY);
     this->address.sin_port = htons(SERVER_PORT);
     this->address.sin_family = AF_INET;
 

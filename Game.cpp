@@ -4,8 +4,8 @@
 
 #include "Game.h"
 
-Game::Game() : ownerSocket(0), questions({}) {}
-Game::Game(int socket) : ownerSocket(socket) {}
+Game::Game() : ownerSocket(0), questions({}), code(0) {}
+Game::Game(int socket) : ownerSocket(socket), questions({}), code(0) {}
 
 int Game::getOwnerSocket() const {
     return ownerSocket;
@@ -21,4 +21,12 @@ std::vector<Question> &Game::getQuestions() {
 
 void Game::setQuestions(const std::vector<Question> &questions) {
     Game::questions = questions;
+}
+
+int Game::getCode() const {
+    return code;
+}
+
+void Game::setCode(int code) {
+    Game::code = code;
 }
