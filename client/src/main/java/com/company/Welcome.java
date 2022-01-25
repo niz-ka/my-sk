@@ -1,9 +1,7 @@
 package com.company;
 
 import javax.swing.*;
-
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.util.Objects;
 
 public class Welcome {
     private JTextArea codeTextArea;
@@ -12,42 +10,46 @@ public class Welcome {
     protected JPanel panel;
 
     public Welcome() {
+
         createButton.addActionListener(actionEvent -> {
-            if(Application.connection != null)
+            if (Application.connection != null)
                 Application.frame.setApplicationPanel(new GameCreation().panel);
         });
 
-        joinButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                if(Application.connection != null) {
-                    Application.connection.send(Message.JOINING.asChar() + codeTextArea.getText());
-                    String status = Application.connection.receive();
+        joinButton.addActionListener(actionEvent -> {
+            if (Application.connection != null) {
 
-                    if(status.charAt(0) == Message.GAME_NOT_EXISTS.asChar()) {
-                        JOptionPane.showMessageDialog(
-                                null,
-                                "Błędny kod gry",
-                                "Błąd",
-                                JOptionPane.INFORMATION_MESSAGE);
-                    }
+                String gameCode = codeTextArea.getText();
 
-                    else if(status.charAt(0) == Message.JOINING_OK.asChar()) {
-                        System.out.println("[INFO] Joining");
-                        Application.frame.setApplicationPanel(new NickView().panel);
-                    }
+                if (gameCode.length() != 4 || !gameCode.matches("\\d+")) {
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Kod gry musi składać się z czterech cyfr",
+                            "Błąd",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
 
-                    else if(status.charAt(0) == Message.GAME_ALREADY_STARTED.asChar()) {
-                        JOptionPane.showMessageDialog(
-                                null,
-                                "Gra już się toczy!",
-                                "Błąd",
-                                JOptionPane.INFORMATION_MESSAGE);
-                    }
+                Application.connection.send(Message.JOINING + gameCode);
+                String status = Application.connection.receive();
 
-                    else {
-                        System.out.println("[ERROR] Undefined join message!");
-                    }
+                if (Objects.equals(status, Message.GAME_NOT_EXISTS.toString())) {
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Błędny kod gry",
+                            "Błąd",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } else if (Objects.equals(status, Message.JOINING_OK.toString())) {
+                    System.out.println("[INFO] Joining");
+                    Application.frame.setApplicationPanel(new NickView().panel);
+                } else if (Objects.equals(status, Message.GAME_ALREADY_STARTED.toString())) {
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Gra już się toczy!",
+                            "Błąd",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    System.out.printf("[ERROR] Undefined message (%s)\n", status);
                 }
             }
         });

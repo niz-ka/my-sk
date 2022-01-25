@@ -2,13 +2,9 @@ package com.company;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 
 public class Connection {
-    private final static int HEADER = 4;
-
     private final Socket socket;
     private final DataOutputStream out;
     private final DataInputStream in;
@@ -38,7 +34,6 @@ public class Connection {
 
         try {
             out.write(message.getBytes());
-            System.out.println("[WRITE] " + message);
         }
         catch(java.io.IOException ex) {
             System.out.println("[Exception] write()" + ex);
@@ -48,10 +43,7 @@ public class Connection {
     public String receive() {
         try {
             int length = Integer.parseInt(new String(in.readNBytes(4)));
-            System.out.println("[READ] length: " + length);
-            String message = new String(in.readNBytes(length));
-            System.out.println("[READ] " + message);
-            return message;
+            return new String(in.readNBytes(length));
         } catch(java.io.IOException ex) {
             System.out.println("[Exception] read" + ex);
             return null;

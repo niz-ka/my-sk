@@ -13,6 +13,7 @@ public class NickView {
     public NickView() {
         playButton.addActionListener(actionEvent -> {
             String nick = nickTextField.getText();
+
             if(nick.length() < 4) {
                 JOptionPane.showMessageDialog(
                         null,
@@ -21,27 +22,58 @@ public class NickView {
                         JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            Application.connection.send(Message.NICK_CHOOSING.asChar() + nick);
+
+            Application.connection.send(Message.NICK_CHOOSING + nick);
             String message = Application.connection.receive();
 
-            if(message.charAt(0) == Message.NICK_USED.asChar()) {
+            if(Objects.equals(message, Message.NICK_USED.toString())) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Pseudonim zajęty! Proszę wybrać inny",
                         "Błąd",
                         JOptionPane.INFORMATION_MESSAGE);
                 return;
-            } else if(message.charAt(0) == Message.GAME_ALREADY_STARTED.asChar()) {
+            } else if(Objects.equals(message, Message.GAME_ALREADY_STARTED.toString())) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Gra już się toczy!",
                         "Błąd",
                         JOptionPane.INFORMATION_MESSAGE);
+                return;
+            } else if(Objects.equals(message, Message.GAME_NOT_EXISTS.toString())) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Ta gra została zakończona",
+                        "Błąd",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            } else if(!Objects.equals(message, Message.NICK_OK.toString())) {
+                System.out.printf("[ERROR] Undefined message (%s)\n", message);
             }
 
             nickTextField.setVisible(false);
             playButton.setVisible(false);
             infoField.setText("Oczekiwanie na rozpoczęcie gry");
+            Thread gameStarter = new Thread(new GameStarter());
+            gameStarter.start();
         });
+    }
+
+    static class GameStarter implements Runnable {
+        @Override
+        public void run() {
+            String gameStart = Application.connection.receive();
+
+            if(Objects.equals(gameStart, Message.GAME_START.toString())) {
+                Application.frame.setApplicationPanel(new GameView().panel);
+            } else {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Wystąpił nieoczekiwany błąd :(",
+                        "Błąd",
+                        JOptionPane.INFORMATION_MESSAGE);
+                System.out.printf("[ERROR] Message (%s) unknown\n", gameStart);
+            }
+        }
     }
 }

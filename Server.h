@@ -31,7 +31,7 @@ private:
     int connectClient();
     static size_t readData(int clientFd, int length, std::string& data);
     static int stringToInt(const std::string& number);
-    void makeAction(const std::string &message, const int clientFd);
+    void makeAction(std::string &message, int clientFd);
     static size_t sendData(int socket, const std::string& data);
 };
 

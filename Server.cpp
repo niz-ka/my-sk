@@ -13,9 +13,10 @@
 #include <iostream>
 #include <random>
 #include "Server.h"
+#include "Message.h"
 
 #define SERVER_PORT 5050
-#define HEADER 4        // Długość nagłówka, ten z kolei określa długość wiadomości
+#define HEADER 4
 
 Server::Server() : socketFd(0), address({}), clients({}), pollfds({}), games({}) {}
 
@@ -23,25 +24,6 @@ size_t Server::getNumberOfClients() const {
     return this->clients.size();
 }
 
-enum class MESSAGE : char {
-    QUESTION = 'm',
-        QUESTION_START = 's',
-        QUESTION_END = 'e',
-        QUESTION_QUESTION = 'q',
-        QUESTION_ANSWER_A = 'a',
-        QUESTION_ANSWER_B = 'b',
-        QUESTION_ANSWER_C = 'c',
-        QUESTION_ANSWER_D = 'd',
-        QUESTION_CORRECT = 'p',
-    JOINING = 'j',
-    JOINING_OK = 'o',
-    GAME_ALREADY_STARTED = 'g',
-    GAME_NOT_EXISTS = 'x',
-    NICK_CHOOSING = 'n',
-    NICK_USED = 'f',
-    NICK_OK = 'v',
-    GAME_START = 's'
-};
 
 /**
  * Zamyka gniazdo i usuwa klienta z listy klientów
@@ -76,6 +58,14 @@ void Server::disconnectClient(int clientFd) {
     // Usuń dane tego klienta
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
+
+    // Ustaw właściciela gry na brak właściciela
+    const int gameCode = clients[clientFd].getGameCode();
+    if(games.find(gameCode) != games.end()) {
+        if(games[gameCode].getOwnerSocket() == clientFd)
+            games[gameCode].setOwnerSocket(0);
+    }
+
     this->clients.erase(clientFd);
 }
 
@@ -223,12 +213,12 @@ size_t Server::sendData(int socket, const std::string& data)
  * Podejmuje akcję w zależności od otrzymanej wiadomości
  * @param message wiadomość przesłana przez klienta
  */
-void Server::makeAction(const std::string& message, const int clientFd) {
+void Server::makeAction(std::string& message, const int clientFd) {
 
-    auto action = (MESSAGE) message[0];
+    const MESSAGE action = extractMsg(message);
 
     if(action == MESSAGE::QUESTION) {
-       auto prefix = (MESSAGE) message[1];
+       const MESSAGE prefix = extractMsg(message);
 
        // Stwórz nową grę (rozpoczęto wysyłanie pytań)
        if(prefix == MESSAGE::QUESTION_START) {
@@ -258,35 +248,33 @@ void Server::makeAction(const std::string& message, const int clientFd) {
 
        // Wysłano część jednego z pytań
        else {
-            auto type = (MESSAGE) message[2];
             const int gameCode = clients[clientFd].getGameCode();
 
             // Otrzymano pytanie pytania
-            if(type == MESSAGE::QUESTION_QUESTION) {
+            if(prefix == MESSAGE::QUESTION_QUESTION) {
                 this->games[gameCode].getQuestions().emplace_back();
-                int number = stringToInt(std::string{message[1]});
-                this->games[gameCode].getQuestions().back().setQuestion(message.substr(3));
-                this->games[gameCode].getQuestions().back().setNumber(number);
+                this->games[gameCode].getQuestions().back().setQuestion(message);
+                this->games[gameCode].getQuestions().back().setNumber((int) games[gameCode].getQuestions().size());
             }
 
-            else if(type == MESSAGE::QUESTION_ANSWER_A) {
-                this->games[gameCode].getQuestions().back().setAnswerA(message.substr(3));
+            else if(prefix == MESSAGE::QUESTION_ANSWER_A) {
+                this->games[gameCode].getQuestions().back().setAnswerA(message);
             }
 
-            else if(type == MESSAGE::QUESTION_ANSWER_B) {
-                this->games[gameCode].getQuestions().back().setAnswerB(message.substr(3));
+            else if(prefix == MESSAGE::QUESTION_ANSWER_B) {
+                this->games[gameCode].getQuestions().back().setAnswerB(message);
             }
 
-            else if(type == MESSAGE::QUESTION_ANSWER_C) {
-                this->games[gameCode].getQuestions().back().setAnswerC(message.substr(3));
+            else if(prefix == MESSAGE::QUESTION_ANSWER_C) {
+                this->games[gameCode].getQuestions().back().setAnswerC(message);
             }
 
-            else if(type == MESSAGE::QUESTION_ANSWER_D) {
-                this->games[gameCode].getQuestions().back().setAnswerD(message.substr(3));
+            else if(prefix  == MESSAGE::QUESTION_ANSWER_D) {
+                this->games[gameCode].getQuestions().back().setAnswerD(message);
             }
 
-            else if(type == MESSAGE::QUESTION_CORRECT) {
-                this->games[gameCode].getQuestions().back().setCorrect(message.substr(3));
+            else if(prefix  == MESSAGE::QUESTION_CORRECT) {
+                this->games[gameCode].getQuestions().back().setCorrect(message);
             }
 
             else {
@@ -297,8 +285,7 @@ void Server::makeAction(const std::string& message, const int clientFd) {
     }
     // Ktoś próbuje dołączyć do gry (wpisał kod)
     else if(action == MESSAGE::JOINING) {
-
-        const int submittedCode = this->stringToInt(message.substr(1));
+        const int submittedCode = this->stringToInt(message);
 
         for(auto& game : this->games) {
 
@@ -309,33 +296,38 @@ void Server::makeAction(const std::string& message, const int clientFd) {
 
                 // Gra już trwa
                 if(game.second.isStarted()) {
-                    this->sendData(clientFd, std::string{(char)MESSAGE::GAME_ALREADY_STARTED});
+                    this->sendData(clientFd, msgToStr(MESSAGE::GAME_ALREADY_STARTED));
                     printf("[INFO] Game is already running (gameCodeView)\n");
                     return;
                 }
 
                 // Gracz dołącza do gry
-                this->sendData(clientFd, std::string{(char)MESSAGE::JOINING_OK});
+                this->sendData(clientFd, msgToStr(MESSAGE::JOINING_OK));
                 this->clients[clientFd].setGameCode(correctCode);
                 printf("[INFO] Player (%d) typed correct code (%d)\n", clientFd, correctCode);
                 return;
             }
         }
 
-        this->sendData(clientFd, std::string{(char)MESSAGE::GAME_NOT_EXISTS});
+        this->sendData(clientFd, msgToStr(MESSAGE::GAME_NOT_EXISTS));
         printf("[INFO] Game with code (%d) not exists\n", submittedCode);
     }
 
     // Gracz wysłał pseudonim
     else if(action == MESSAGE::NICK_CHOOSING) {
-        const std::string nick = message.substr(1);
+        const std::string& nick = message;
         const int gameCode = clients[clientFd].getGameCode();
+
+        if(games.find(gameCode) == games.end()) {
+            printf("[INFO] Game with code (%d) not exists\n", gameCode);
+            this->sendData(clientFd, msgToStr(MESSAGE::GAME_NOT_EXISTS));
+        }
 
         // Sprawdź, czy gra już nie trwa!
         if(this->games[gameCode].isStarted()) {
             // Usuwamy gracza z gry
             this->clients[clientFd].setGameCode(0);
-            this->sendData(clientFd, std::string{(char)MESSAGE::GAME_ALREADY_STARTED});
+            this->sendData(clientFd, msgToStr(MESSAGE::GAME_ALREADY_STARTED));
             printf("[INFO] Game with code (%d) is already running (gameNickView)\n", gameCode);
             return;
         }
@@ -348,7 +340,7 @@ void Server::makeAction(const std::string& message, const int clientFd) {
             if(clientFd == anotherClientFd) continue;
 
             if((nick == anotherClient.second.getNick()) && (gameCode == anotherClient.second.getGameCode())) {
-                this->sendData(clientFd, std::string{(char)MESSAGE::NICK_USED});
+                this->sendData(clientFd, msgToStr(MESSAGE::NICK_USED));
                 printf("[INFO] Nick (%s) already exists for game with code (%d)\n", nick.c_str(), gameCode);
                 return;
             }
@@ -365,7 +357,7 @@ void Server::makeAction(const std::string& message, const int clientFd) {
             printf("[INFO] Game owner is not present\n");
         }
 
-        this->sendData(clientFd, std::string{(char)MESSAGE::NICK_OK});
+        this->sendData(clientFd, msgToStr(MESSAGE::NICK_OK));
         printf("[INFO] Nick (%s) for player (%d) set\n", nick.c_str(), clientFd);
     }
 
@@ -379,12 +371,33 @@ void Server::makeAction(const std::string& message, const int clientFd) {
         }
 
         this->games[gameCode].setStarted(true);
-        this->sendData(clientFd, std::string{(char)MESSAGE::GAME_START});
+
+        // Wyślij sygnał start
+        for(auto& client : clients) {
+            if(client.second.getGameCode() == gameCode) {
+                this->sendData(client.first, msgToStr(MESSAGE::GAME_START));
+            }
+        }
+
         printf("[INFO] Game owner started game with code (%d)\n", gameCode);
+
+        // Wyślij pierwsze pytanie (ale nie do właściciela)
+        for(auto& client : clients) {
+            if(clientFd == client.first) continue;
+
+            if(client.second.getGameCode() == gameCode) {
+                this->sendData(client.first, games[gameCode].getQuestions()[0].getQuestion());
+                this->sendData(client.first, games[gameCode].getQuestions()[0].getAnswerA());
+                this->sendData(client.first, games[gameCode].getQuestions()[0].getAnswerB());
+                this->sendData(client.first, games[gameCode].getQuestions()[0].getAnswerC());
+                this->sendData(client.first, games[gameCode].getQuestions()[0].getAnswerD());
+                this->sendData(client.first, "30");
+            }
+        }
     }
 
     else {
-        printf("[ERROR] Unknown message action!\n");
+        printf("[ERROR] Unknown message (%s))\n", message.c_str());
     }
 
 }

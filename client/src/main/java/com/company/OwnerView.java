@@ -1,8 +1,6 @@
 package com.company;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.Objects;
 
 public class OwnerView {
@@ -20,15 +18,13 @@ public class OwnerView {
         thread = new Thread(new PlayersUpdater());
         thread.start();
 
-        playButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                Application.connection.send(String.valueOf(Message.GAME_START));
-                try {
-                    thread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+        playButton.addActionListener(actionEvent -> {
+            Application.connection.send(Message.GAME_START.toString());
+
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         });
     }
@@ -38,12 +34,14 @@ public class OwnerView {
         public void run() {
             while(true) {
                 String newPlayer = Application.connection.receive();
-                if(newPlayer.charAt(0) == Message.GAME_START.asChar()) {
+                if(Objects.equals(newPlayer, Message.GAME_START.toString())) {
                     break;
                 }
-                playersTextArea.append("\n" + newPlayer);
                 ++players;
-                playerNumberLabel.setText(String.valueOf(players));
+                SwingUtilities.invokeLater(() -> {
+                    playersTextArea.append("\n" + newPlayer);
+                    playerNumberLabel.setText(String.valueOf(players));
+                });
             }
         }
     }
