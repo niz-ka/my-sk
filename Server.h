@@ -17,9 +17,9 @@
 class Server {
     int socketFd;
     sockaddr_in address;
-    std::unordered_map<int, Client> clients;
+    std::unordered_map<int, Client> clients; // kluczem deskryptor
     std::vector<pollfd> pollfds;
-    std::unordered_map<int, Game> games;
+    std::unordered_map<int, Game> games; // kluczem kod gry
 public:
     Server();
     void run();

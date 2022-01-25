@@ -21,16 +21,17 @@ public class NickView {
                         JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            Application.connection.send("n" + nick);
+            Application.connection.send(Message.NICK_CHOOSING.asChar() + nick);
             String message = Application.connection.receive();
-            if(message.equals("ne")) {
+
+            if(message.charAt(0) == Message.NICK_USED.asChar()) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Pseudonim zajęty! Proszę wybrać inny",
                         "Błąd",
                         JOptionPane.INFORMATION_MESSAGE);
                 return;
-            } else if(message.equals("js")) {
+            } else if(message.charAt(0) == Message.GAME_ALREADY_STARTED.asChar()) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Gra już się toczy!",

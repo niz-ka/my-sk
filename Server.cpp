@@ -14,7 +14,6 @@
 #include <random>
 #include "Server.h"
 
-// TODO - coś lepszego niż define
 #define SERVER_PORT 5050
 #define HEADER 4        // Długość nagłówka, ten z kolei określa długość wiadomości
 
@@ -23,6 +22,26 @@ Server::Server() : socketFd(0), address({}), clients({}), pollfds({}), games({})
 size_t Server::getNumberOfClients() const {
     return this->clients.size();
 }
+
+enum class MESSAGE : char {
+    QUESTION = 'm',
+        QUESTION_START = 's',
+        QUESTION_END = 'e',
+        QUESTION_QUESTION = 'q',
+        QUESTION_ANSWER_A = 'a',
+        QUESTION_ANSWER_B = 'b',
+        QUESTION_ANSWER_C = 'c',
+        QUESTION_ANSWER_D = 'd',
+        QUESTION_CORRECT = 'p',
+    JOINING = 'j',
+    JOINING_OK = 'o',
+    GAME_ALREADY_STARTED = 'g',
+    GAME_NOT_EXISTS = 'x',
+    NICK_CHOOSING = 'n',
+    NICK_USED = 'f',
+    NICK_OK = 'v',
+    GAME_START = 's'
+};
 
 /**
  * Zamyka gniazdo i usuwa klienta z listy klientów
@@ -58,7 +77,6 @@ void Server::disconnectClient(int clientFd) {
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
     this->clients.erase(clientFd);
-    this->games.erase(clientFd);
 }
 
 /**
@@ -210,20 +228,23 @@ size_t Server::sendData(int socket, const std::string& data)
  * @param message wiadomość przesłana przez klienta
  */
 void Server::makeAction(const std::string& message, const int clientFd) {
-    //std::cout << "[MESSAGE] " << message << std::endl;
 
-    std::string action = message.substr(0, 1);
+    auto action = (MESSAGE) message[0];
 
-    if(action == "m") {
-        std::string prefix = message.substr(1, 1);
-        if(prefix == "s") {
-            if(games.find(clientFd) != games.end()) {
-                printf("[ERROR] Game with socket %d already exists!\n", clientFd);
-                return;
-            }
+    if(action == MESSAGE::QUESTION) {
+       auto prefix = (MESSAGE) message[1];
+
+       if(prefix == MESSAGE::QUESTION_START) {
+
+//           if(games.find(clientFd) != games.end()) {
+//                printf("################[ERROR] Game with socket %d already exists!\n#############", clientFd);
+//                return;
+//            }
+
             this->games[clientFd] = Game(clientFd);
         }
-        else if(prefix == "e") {
+
+       else if(prefix == MESSAGE::QUESTION_END) {
             std::random_device dev;
             std::mt19937 rng(dev());
             std::uniform_int_distribution<std::mt19937::result_type> dist6(1000,9999);
@@ -231,31 +252,32 @@ void Server::makeAction(const std::string& message, const int clientFd) {
             this->games[clientFd].setCode(code);
             this->sendData(clientFd, std::to_string(code));
         }
-        else {
-            std::string type = message.substr(2, 1);
-            if(type == "q") {
+
+       else {
+            auto type = (MESSAGE) message[2];
+            if(type == MESSAGE::QUESTION_QUESTION) {
                 this->games[clientFd].getQuestions().emplace_back();
-                int number = stringToInt(prefix);
+                int number = stringToInt(std::string{message[1]});
                 this->games[clientFd].getQuestions().back().setQuestion(message.substr(3));
                 this->games[clientFd].getQuestions().back().setNumber(number);
             }
-            else if(type == "a") {
+            else if(type == MESSAGE::QUESTION_ANSWER_A) {
                 this->games[clientFd].getQuestions().back().setAnswerA(message.substr(3));
             }
 
-            else if(type == "b") {
+            else if(type == MESSAGE::QUESTION_ANSWER_B) {
                 this->games[clientFd].getQuestions().back().setAnswerB(message.substr(3));
             }
 
-            else if(type == "c") {
+            else if(type == MESSAGE::QUESTION_ANSWER_C) {
                 this->games[clientFd].getQuestions().back().setAnswerC(message.substr(3));
             }
 
-            else if(type == "d") {
+            else if(type == MESSAGE::QUESTION_ANSWER_D) {
                 this->games[clientFd].getQuestions().back().setAnswerD(message.substr(3));
             }
 
-            else if(type == "p") {
+            else if(type == MESSAGE::QUESTION_CORRECT) {
                 this->games[clientFd].getQuestions().back().setCorrect(message.substr(3));
             }
 
@@ -264,45 +286,45 @@ void Server::makeAction(const std::string& message, const int clientFd) {
                 return;
             }
         }
-    } else if(action == "j") {
+    } else if(action == MESSAGE::JOINING) {
         int code = this->stringToInt(message.substr(1));
         for(auto& game : this->games) {
 
             if(game.second.getCode() == code) {
                 if(game.second.isStarted()) {
-                    this->sendData(clientFd, "js");
+                    this->sendData(clientFd, std::string{(char)MESSAGE::GAME_ALREADY_STARTED});
                     return;
                 }
 
-                this->sendData(clientFd, "jo");
+                this->sendData(clientFd, std::string{(char)MESSAGE::JOINING_OK});
                 this->clients[clientFd].setGameOwnerSocket(game.first);
                 return;
             }
         }
-        this->sendData(clientFd, "jr");
-    } else if(action == "n") {
+        this->sendData(clientFd, std::string{(char)MESSAGE::GAME_NOT_EXISTS});
+    } else if(action == MESSAGE::NICK_CHOOSING) {
         std::string nick = message.substr(1);
 
         if(this->games[this->clients[clientFd].getGameOwnerSocket()].isStarted()) {
             this->clients[clientFd].setGameOwnerSocket(-10);
-            this->sendData(clientFd, "js");
+            this->sendData(clientFd, std::string{(char)MESSAGE::GAME_ALREADY_STARTED});
             return;
         }
 
         for(auto& client : this->clients) {
 
-            if((clientFd != client.first) && nick == client.second.getNick()) {
-                this->sendData(clientFd, "ne");
+            if((clientFd != client.first) && (nick == client.second.getNick()) && (clients[clientFd].getGameOwnerSocket() == client.second.getGameOwnerSocket())) {
+                this->sendData(clientFd, std::string{(char)MESSAGE::NICK_USED});
                 return;
             }
         }
         this->clients[clientFd].setNick(nick);
         this->sendData(clients[clientFd].getGameOwnerSocket(), nick);
-        this->sendData(clientFd, "no");
+        this->sendData(clientFd, std::string{(char)MESSAGE::NICK_OK});
 
-    } else if(action == "s") {
+    } else if(action == MESSAGE::GAME_START) {
         this->games[clientFd].setStarted(true);
-        this->sendData(clientFd, "s");
+        this->sendData(clientFd, std::string{(char)MESSAGE::GAME_START});
     }
 
     else {

@@ -13,7 +13,7 @@ public class OwnerView {
     private JButton playButton;
 
     private int players = 0;
-    private Thread thread;
+    private final Thread thread;
 
     public OwnerView(String gameCode) {
         codeLabel.setText(gameCode);
@@ -23,7 +23,7 @@ public class OwnerView {
         playButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                Application.connection.send("s");
+                Application.connection.send(String.valueOf(Message.GAME_START));
                 try {
                     thread.join();
                 } catch (InterruptedException e) {
@@ -38,7 +38,7 @@ public class OwnerView {
         public void run() {
             while(true) {
                 String newPlayer = Application.connection.receive();
-                if(Objects.equals(newPlayer, "s")) {
+                if(newPlayer.charAt(0) == Message.GAME_START.asChar()) {
                     break;
                 }
                 playersTextArea.append("\n" + newPlayer);

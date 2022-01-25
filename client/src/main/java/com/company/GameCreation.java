@@ -23,7 +23,7 @@ public class GameCreation {
     private JLabel numberLabel;
 
     private int questionNumber = 1;
-    private ArrayList<Question> questions = new ArrayList<>();
+    private final ArrayList<Question> questions = new ArrayList<>();
     ButtonGroup correctButtons = new ButtonGroup();
 
 
@@ -85,17 +85,17 @@ public class GameCreation {
                 }
 
 
-                Application.connection.send("ms");
+                Application.connection.send(Message.QUESTION.asChar() + String.valueOf(Message.QUESTION_START.asChar()));
                 for(Question question : questions) {
-                    String prefix = "m" + question.getNumber();
-                    Application.connection.send(prefix + "q" + question.getQuestion());
-                    Application.connection.send(prefix + "a" + question.getAnswerA());
-                    Application.connection.send(prefix + "b" + question.getAnswerB());
-                    Application.connection.send(prefix + "c" + question.getAnswerC());
-                    Application.connection.send(prefix + "d" + question.getAnswerD());
-                    Application.connection.send(prefix + "p" + question.getCorrect());
+                    String prefix = String.valueOf(Message.QUESTION.asChar()) + question.getNumber();
+                    Application.connection.send(prefix + Message.QUESTION_QUESTION.asChar() + question.getQuestion());
+                    Application.connection.send(prefix + Message.QUESTION_ANSWER_A.asChar() + question.getAnswerA());
+                    Application.connection.send(prefix + Message.QUESTION_ANSWER_B.asChar()+ question.getAnswerB());
+                    Application.connection.send(prefix + Message.QUESTION_ANSWER_C.asChar() + question.getAnswerC());
+                    Application.connection.send(prefix + Message.QUESTION_ANSWER_D.asChar()+ question.getAnswerD());
+                    Application.connection.send(prefix + Message.QUESTION_CORRECT.asChar() + question.getCorrect());
                 }
-                Application.connection.send("me");
+                Application.connection.send(Message.QUESTION.asChar() + String.valueOf(Message.QUESTION_END.asChar()));
 
                 String gameCode = Application.connection.receive();
                 Application.frame.setApplicationPanel(new OwnerView(gameCode).panel);
