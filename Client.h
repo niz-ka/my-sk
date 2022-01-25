@@ -13,11 +13,10 @@ class Client {
     int socketFd;
     sockaddr_in address;
     std::string nick;
-    int gameOwnerSocket;
+    int gameCode;
 public:
-    int getGameOwnerSocket() const;
-
-    void setGameOwnerSocket(int gameOwnerSocket);
+    int getGameCode() const;
+    void setGameCode(int gameCode);
 
 public:
     const std::string &getNick() const;

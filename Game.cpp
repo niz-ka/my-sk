@@ -5,7 +5,7 @@
 #include "Game.h"
 
 Game::Game() : ownerSocket(0), questions({}), code(0), started(false) {}
-Game::Game(int socket) : ownerSocket(socket), questions({}), code(0), started(false) {}
+Game::Game(int socket, int gameCode) : ownerSocket(socket), questions({}), code(gameCode), started(false) {}
 
 int Game::getOwnerSocket() const {
     return ownerSocket;

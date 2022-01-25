@@ -32,7 +32,7 @@ private:
     static size_t readData(int clientFd, int length, std::string& data);
     static int stringToInt(const std::string& number);
     void makeAction(const std::string &message, const int clientFd);
-    size_t sendData(int socket, const std::string& data);
+    static size_t sendData(int socket, const std::string& data);
 };
 
 

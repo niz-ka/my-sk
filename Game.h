@@ -16,7 +16,7 @@ class Game {
     bool started;
 public:
     Game();
-    explicit Game(int socket);
+    explicit Game(int socket, int gameCode);
 
     bool isStarted() const;
 
