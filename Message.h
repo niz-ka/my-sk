@@ -19,7 +19,11 @@ enum class MESSAGE : int {
     NICK_USED = 24,
     NICK_OK = 25,
     GAME_START = 26,
-    ERROR = 27
+    ERROR = 27,
+    ANSWER = 28,
+    NEXT_QUESTION = 29,
+    NEW_PLAYER = 30,
+    QUESTION_TIME = 31
 };
 
 std::string msgToStr(MESSAGE message) {

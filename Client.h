@@ -14,6 +14,12 @@ class Client {
     sockaddr_in address;
     std::string nick;
     int gameCode;
+    int points;
+public:
+    int getPoints() const;
+    void setPoints(int points);
+    void givePoint();
+
 public:
     int getGameCode() const;
     void setGameCode(int gameCode);

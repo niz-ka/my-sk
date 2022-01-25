@@ -352,7 +352,7 @@ void Server::makeAction(std::string& message, const int clientFd) {
         const int ownerSocket = games[gameCode].getOwnerSocket();
 
         if(clients.find(ownerSocket) != clients.end()) {
-            this->sendData(ownerSocket, nick);
+            this->sendData(ownerSocket, msgToStr(MESSAGE::NEW_PLAYER) + nick);
         } else {
             printf("[INFO] Game owner is not present\n");
         }
@@ -374,6 +374,8 @@ void Server::makeAction(std::string& message, const int clientFd) {
 
         // Wyślij sygnał start
         for(auto& client : clients) {
+            if(client.first == clientFd) continue;
+
             if(client.second.getGameCode() == gameCode) {
                 this->sendData(client.first, msgToStr(MESSAGE::GAME_START));
             }
@@ -381,18 +383,36 @@ void Server::makeAction(std::string& message, const int clientFd) {
 
         printf("[INFO] Game owner started game with code (%d)\n", gameCode);
 
-        // Wyślij pierwsze pytanie (ale nie do właściciela)
         for(auto& client : clients) {
-            if(clientFd == client.first) continue;
-
             if(client.second.getGameCode() == gameCode) {
-                this->sendData(client.first, games[gameCode].getQuestions()[0].getQuestion());
+                this->sendData(client.first, msgToStr(MESSAGE::QUESTION));
+                this->sendData(client.first,  games[gameCode].getQuestions()[0].getQuestion());
                 this->sendData(client.first, games[gameCode].getQuestions()[0].getAnswerA());
-                this->sendData(client.first, games[gameCode].getQuestions()[0].getAnswerB());
-                this->sendData(client.first, games[gameCode].getQuestions()[0].getAnswerC());
+                this->sendData(client.first,  games[gameCode].getQuestions()[0].getAnswerB());
+                this->sendData(client.first,  games[gameCode].getQuestions()[0].getAnswerC());
                 this->sendData(client.first, games[gameCode].getQuestions()[0].getAnswerD());
-                this->sendData(client.first, "30");
+                this->sendData(client.first,  "30");
             }
+        }
+
+        this->sendData(clientFd, games[gameCode].getQuestions()[0].getCorrect());
+
+    } else if(action == MESSAGE::ANSWER) {
+        const int submittedQuestionNumber = std::stoi(message.substr(0, 3));
+        const std::string submittedAnswer = message.substr(3, 1);
+        const int gameCode = clients[clientFd].getGameCode();
+
+        // Odpowiedź spóźniona
+        if(submittedQuestionNumber != games[gameCode].getCurrentQuestion()) {
+            printf("[INFO] Player (%s) sent answer for question (%d) in game (%d) too late\n",
+                   clients[clientFd].getNick().c_str(), submittedQuestionNumber, gameCode);
+        } else if(games[gameCode].getQuestions()[submittedQuestionNumber].getCorrect() == submittedAnswer) {
+            clients[clientFd].givePoint();
+            printf("[INFO] Player (%s) sent correct answer for question (%d) in game (%d)\n",
+                   clients[clientFd].getNick().c_str(), submittedQuestionNumber, gameCode);
+        } else {
+            printf("[INFO] Player (%s) sent incorrect answer for question (%d) in game (%d)\n",
+                   clients[clientFd].getNick().c_str(), submittedQuestionNumber, gameCode);
         }
     }
 

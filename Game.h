@@ -14,9 +14,14 @@ class Game {
     std::vector<Question> questions;
     int code;
     bool started;
+    int currentQuestion;
 public:
     Game();
     explicit Game(int socket, int gameCode);
+
+    int getCurrentQuestion() const;
+
+    void setCurrentQuestion(int currentQuestion);
 
     bool isStarted() const;
 
