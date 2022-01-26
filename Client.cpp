@@ -4,17 +4,13 @@
 
 #include "Client.h"
 
-Client::Client() : socketFd(0), address({}), gameCode(0), points(0) {}
+Client::Client() : socketFd(0), address({}), gameCode(0), answered(false) {}
 
 Client::Client(int socketFd, sockaddr_in address)
-: socketFd(socketFd), address(address), gameCode(0), points(0) {}
+: socketFd(socketFd), address(address), gameCode(0), answered(false) {}
 
 int Client::getSocketFd() const {
     return this->socketFd;
-}
-
-void Client::givePoint() {
-    ++points;
 }
 
 sockaddr_in* Client::getAddressPointer() {
@@ -37,10 +33,10 @@ void Client::setGameCode(int gameCode) {
     Client::gameCode = gameCode;
 }
 
-int Client::getPoints() const {
-    return points;
+bool Client::isAnswered() const {
+    return answered;
 }
 
-void Client::setPoints(int points) {
-    Client::points = points;
+void Client::setAnswered(bool answered) {
+    Client::answered = answered;
 }

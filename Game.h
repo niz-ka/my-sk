@@ -22,6 +22,7 @@ public:
     int getCurrentQuestion() const;
 
     void setCurrentQuestion(int currentQuestion);
+    int nextQuestion();
 
     bool isStarted() const;
 

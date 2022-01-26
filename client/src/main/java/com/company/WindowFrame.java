@@ -11,6 +11,7 @@ public class WindowFrame extends JFrame {
         this.setTitle("Quiz.App");
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setVisible(true);
+        this.setLocationRelativeTo(null);
 
         this.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
@@ -27,6 +28,5 @@ public class WindowFrame extends JFrame {
         this.revalidate();
         this.repaint();
         this.pack();
-        this.setLocationRelativeTo(null);
     }
 }

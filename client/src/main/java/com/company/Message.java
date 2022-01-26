@@ -22,7 +22,9 @@ public enum Message {
     ANSWER(28),
     NEXT_QUESTION(29),
     NEW_PLAYER(30),
-    QUESTION_TIME(31);
+    QUESTION_TIME(31),
+    PLAYERS_RANK(32),
+    OWNER_RANK(33);
 
     private final int value;
 

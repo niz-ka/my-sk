@@ -15,6 +15,10 @@ void Game::setOwnerSocket(int ownerSocket) {
     Game::ownerSocket = ownerSocket;
 }
 
+int Game::nextQuestion() {
+    return ++currentQuestion;
+}
+
 std::vector<Question> &Game::getQuestions() {
     return questions;
 }

@@ -222,6 +222,14 @@ void Server::makeAction(std::string& message, const int clientFd) {
 
        // Stwórz nową grę (rozpoczęto wysyłanie pytań)
        if(prefix == MESSAGE::QUESTION_START) {
+
+           for(auto& game : games) {
+               if(game.second.getOwnerSocket() == clientFd || clients[clientFd].getGameCode() != 0) {
+                   printf("[INFO] Permission denied\n");
+                   return;
+               }
+           }
+
            std::random_device dev;
            std::mt19937 rng(dev());
            std::uniform_int_distribution<std::mt19937::result_type> dist6(1000,9999);
@@ -238,10 +246,16 @@ void Server::makeAction(std::string& message, const int clientFd) {
            this->clients[clientFd].setGameCode(code);
 
            printf("[INFO] Game with socket (%d) and code (%d) created\n", clientFd, code);
+           return;
         }
 
+       if(clientFd != games[clients[clientFd].getGameCode()].getOwnerSocket() || games[clients[clientFd].getGameCode()].isStarted()) {
+           printf("[INFO] Permission denied\n");
+           return;
+       }
+
        // Zakończono wysyłanie pytań, wyślij kod gry
-       else if(prefix == MESSAGE::QUESTION_END) {
+       if(prefix == MESSAGE::QUESTION_END) {
             this->sendData(clientFd, std::to_string(clients[clientFd].getGameCode()));
             printf("[INFO] Game code (%d) sent to (%d)\n", clients[clientFd].getGameCode(), clientFd);
         }
@@ -287,6 +301,11 @@ void Server::makeAction(std::string& message, const int clientFd) {
     else if(action == MESSAGE::JOINING) {
         const int submittedCode = this->stringToInt(message);
 
+        if(clients[clientFd].getGameCode() != 0) {
+            printf("[ERROR] Permission denied\n");
+            return;
+        }
+
         for(auto& game : this->games) {
 
             const int correctCode = game.first;
@@ -318,10 +337,16 @@ void Server::makeAction(std::string& message, const int clientFd) {
         const std::string& nick = message;
         const int gameCode = clients[clientFd].getGameCode();
 
+        if(clientFd == games[gameCode].getOwnerSocket() || gameCode == 0) {
+            printf("[ERROR] Permission denied\n");
+            return;
+        }
+
         if(games.find(gameCode) == games.end()) {
             printf("[INFO] Game with code (%d) not exists\n", gameCode);
             this->sendData(clientFd, msgToStr(MESSAGE::GAME_NOT_EXISTS));
         }
+
 
         // Sprawdź, czy gra już nie trwa!
         if(this->games[gameCode].isStarted()) {
@@ -370,6 +395,11 @@ void Server::makeAction(std::string& message, const int clientFd) {
             return;
         }
 
+        if(games[gameCode].isStarted()) {
+            printf("[INFO] Permission denied!\n");
+            return;
+        }
+
         this->games[gameCode].setStarted(true);
 
         // Wyślij sygnał start
@@ -381,7 +411,13 @@ void Server::makeAction(std::string& message, const int clientFd) {
             }
         }
 
-        printf("[INFO] Game owner started game with code (%d)\n", gameCode);
+        for(auto& client : clients) {
+            if(client.first == clientFd || gameCode != client.second.getGameCode()) continue;
+            for(auto& anotherClient : clients) {
+                if(anotherClient.first == clientFd || gameCode != anotherClient.second.getGameCode() || anotherClient.first == client.first) continue;
+                sendData(client.first, msgToStr(MESSAGE::NEW_PLAYER) + anotherClient.second.getNick());
+            }
+        }
 
         for(auto& client : clients) {
             if(client.second.getGameCode() == gameCode) {
@@ -392,32 +428,120 @@ void Server::makeAction(std::string& message, const int clientFd) {
                 this->sendData(client.first,  games[gameCode].getQuestions()[0].getAnswerC());
                 this->sendData(client.first, games[gameCode].getQuestions()[0].getAnswerD());
                 this->sendData(client.first,  "30");
+                this->sendData(client.first, games[gameCode].getQuestions()[0].getCorrect());
             }
         }
 
-        this->sendData(clientFd, games[gameCode].getQuestions()[0].getCorrect());
+        printf("[INFO] Game owner started game with code (%d)\n", gameCode);
 
     } else if(action == MESSAGE::ANSWER) {
         const int submittedQuestionNumber = std::stoi(message.substr(0, 3));
         const std::string submittedAnswer = message.substr(3, 1);
         const int gameCode = clients[clientFd].getGameCode();
+        const int gameOwner = games[gameCode].getOwnerSocket();
+
+        if(submittedAnswer != "a" && submittedAnswer != "b" && submittedAnswer != "c" && submittedAnswer != "d" && submittedAnswer != "x") {
+            printf("[ERROR] Wrong answer type\n");
+            return;
+        }
+
+        if(!games[gameCode].isStarted()) {
+            printf("[ERROR] Game with code (%d) is not running\n", gameCode);
+            return;
+        }
+
+        // Właściciel nie może odpowiadać
+        if(clientFd == games[gameCode].getOwnerSocket()) {
+            printf("[ERROR] Permission denied\n");
+            return;
+        }
+
+        // Użytkownik już odpowiedział na to pytanie!
+        if(clients[clientFd].isAnswered()) {
+            printf("[INFO] Permission denied\n");
+            return;
+        }
 
         // Odpowiedź spóźniona
         if(submittedQuestionNumber != games[gameCode].getCurrentQuestion()) {
             printf("[INFO] Player (%s) sent answer for question (%d) in game (%d) too late\n",
                    clients[clientFd].getNick().c_str(), submittedQuestionNumber, gameCode);
-        } else if(games[gameCode].getQuestions()[submittedQuestionNumber].getCorrect() == submittedAnswer) {
-            clients[clientFd].givePoint();
+            return;
+        }
+
+        std::string point;
+
+        // Odpowiedź poprawna
+        if(games[gameCode].getQuestions()[submittedQuestionNumber].getCorrect() == submittedAnswer) {
+            point = "1";
             printf("[INFO] Player (%s) sent correct answer for question (%d) in game (%d)\n",
                    clients[clientFd].getNick().c_str(), submittedQuestionNumber, gameCode);
         } else {
+            point = "0";
             printf("[INFO] Player (%s) sent incorrect answer for question (%d) in game (%d)\n",
                    clients[clientFd].getNick().c_str(), submittedQuestionNumber, gameCode);
         }
+
+        for(auto& client : clients) {
+            if(client.second.getGameCode() != gameCode) continue;
+            sendData(client.first, msgToStr(MESSAGE::PLAYERS_RANK) + point + clients[clientFd].getNick()) ;
+        }
+
+        sendData(gameOwner, msgToStr(MESSAGE::OWNER_RANK) + std::to_string(submittedQuestionNumber) + submittedAnswer);
+
+    } else if(action == MESSAGE::NEXT_QUESTION) {
+        const int gameCode = clients[clientFd].getGameCode();
+        // Ktoś nie jest właścicielem, a próbuje dać następne pytanie!
+        if(games[gameCode].getOwnerSocket() != clientFd) {
+            printf("[INFO] Permission denied!\n");
+            return;
+        }
+
+        // Gra nie trwa
+        if(!games[gameCode].isStarted()) {
+            printf("[ERROR] Game with code (%d) is not running\n", gameCode);
+            return;
+        }
+
+        const int number = games[gameCode].nextQuestion();
+        const int questionsSize = static_cast<int>(games[gameCode].getQuestions().size());
+
+        if(number >= questionsSize) {
+            printf("[ERROR] Question number out of range\n");
+            return;
+        }
+
+        for(auto& client : clients) {
+            if(client.second.getGameCode() == gameCode) {
+                const Question& question = games[gameCode].getQuestions()[number];
+
+                this->sendData(client.first, msgToStr(MESSAGE::QUESTION));
+                this->sendData(client.first,  question.getQuestion());
+                this->sendData(client.first, question.getAnswerA());
+                this->sendData(client.first,  question.getAnswerB());
+                this->sendData(client.first,  question.getAnswerC());
+                this->sendData(client.first, question.getAnswerD());
+                this->sendData(client.first,  "30");
+                this->sendData(client.first, question.getCorrect());
+
+                if(number == questionsSize - 1) {
+                    sendData(client.first, msgToStr(MESSAGE::QUESTION_END));
+                }
+
+                client.second.setAnswered(false);
+            }
+        }
+
+        if(number == questionsSize - 1) {
+            games[gameCode].setStarted(false);
+            //TODO
+        }
+
+        printf("[INFO] Next question (%d) sent in game (%d)\n", number, gameCode);
     }
 
     else {
-        printf("[ERROR] Unknown message (%s))\n", message.c_str());
+        printf("[ERROR] Unknown message (%s)\n", msgToStr(action).c_str());
     }
 
 }
@@ -483,6 +607,7 @@ void Server::run() {
             // Wszystko inne niż POLLIN to błąd!
             if(pollfds[i].revents != POLLIN) {
                 printf("[ERROR] revents != POLLIN\n");
+                continue;
             }
 
             // Zgłoszenie na gnieździe nasłuchującym

@@ -6,6 +6,7 @@ public class Application {
 
     public static WindowFrame frame;
     public static Connection connection;
+    public static String userNick;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {

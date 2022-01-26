@@ -51,6 +51,8 @@ public class NickView {
                 System.out.printf("[ERROR] Undefined message (%s)\n", message);
             }
 
+            Application.userNick = nick;
+
             nickTextField.setVisible(false);
             playButton.setVisible(false);
             infoField.setText("Oczekiwanie na rozpoczęcie gry");
@@ -64,16 +66,19 @@ public class NickView {
         public void run() {
             String gameStart = Application.connection.receive();
 
-            if(Objects.equals(gameStart, Message.GAME_START.toString())) {
-                Application.frame.setApplicationPanel(new GameView().panel);
-            } else {
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Wystąpił nieoczekiwany błąd :(",
-                        "Błąd",
-                        JOptionPane.INFORMATION_MESSAGE);
-                System.out.printf("[ERROR] Message (%s) unknown\n", gameStart);
-            }
+            SwingUtilities.invokeLater(() -> {
+                if(Objects.equals(gameStart, Message.GAME_START.toString())) {
+                    Application.frame.setApplicationPanel(new GameView().panel);
+                } else {
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Wystąpił nieoczekiwany błąd :(",
+                            "Błąd",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    System.out.printf("[ERROR] Message (%s) unknown\n", gameStart);
+                }
+            });
+
         }
     }
 }
