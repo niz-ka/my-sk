@@ -504,9 +504,17 @@ void Server::makeAction(std::string& message, const int clientFd) {
 
     } else if(action == MESSAGE::NEXT_QUESTION) {
         const int gameCode = clients[clientFd].getGameCode();
+        const int questionNumber = std::stoi(message.substr(0, 3));
+
         // Ktoś nie jest właścicielem, a próbuje dać następne pytanie!
         if(games[gameCode].getOwnerSocket() != clientFd) {
             printf("[INFO] Permission denied!\n");
+            return;
+        }
+
+        // Spóźnione
+        if(questionNumber != games[gameCode].getCurrentQuestion()) {
+            printf("[INFO] Next question in game (%d) too late\n", gameCode);
             return;
         }
 

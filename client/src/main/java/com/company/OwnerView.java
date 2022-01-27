@@ -24,6 +24,7 @@ public class OwnerView {
     private int time = 0;
     private Timer timer;
     private boolean autoNext = false;
+    private int questionNumber = 0;
 
     private LinkedHashMap<String, Player> players = new LinkedHashMap<>();
 
@@ -46,7 +47,8 @@ public class OwnerView {
                             JOptionPane.INFORMATION_MESSAGE);
                 }
             } else {
-                Application.connection.send(Message.NEXT_QUESTION.toString());
+                String response = String.format("%s%03d", Message.NEXT_QUESTION, questionNumber - 1);
+                Application.connection.send(response);
             }
 
         });
@@ -83,6 +85,7 @@ public class OwnerView {
                     int newTime = Integer.parseInt(Application.connection.receive());
                     String correct = Application.connection.receive();
                     time = newTime;
+                    ++questionNumber;
 
                     SwingUtilities.invokeLater(() -> {
                         questionLabel.setText(question);
@@ -102,7 +105,10 @@ public class OwnerView {
                             if(time > 0) timeLabel.setText(String.valueOf(--time));
                             else {
                                 if(!autoNext) playButton.setEnabled(true);
-                                else Application.connection.send(Message.NEXT_QUESTION.toString());
+                                else {
+                                    String response = String.format("%s%03d", Message.NEXT_QUESTION, questionNumber - 1);
+                                    Application.connection.send(response);
+                                }
                             }
                         });
 
