@@ -25,7 +25,8 @@ enum class MESSAGE : int {
     NEW_PLAYER = 30,
     QUESTION_TIME = 31,
     PLAYERS_RANK = 32,
-    OWNER_RANK = 33
+    OWNER_RANK = 33,
+    AUTO_NEXT = 34
 };
 
 std::string msgToStr(MESSAGE message) {

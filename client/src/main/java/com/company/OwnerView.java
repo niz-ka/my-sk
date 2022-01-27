@@ -17,11 +17,13 @@ public class OwnerView {
     private JLabel answerCorrectLabel;
     private JLabel timeLabel;
     private JPanel rankPanel;
+    private JPanel ownerRankPanel;
 
     private final Thread thread;
     private boolean started = false;
     private int time = 0;
     private Timer timer;
+    private boolean autoNext = false;
 
     private LinkedHashMap<String, Player> players = new LinkedHashMap<>();
 
@@ -66,6 +68,9 @@ public class OwnerView {
                         rankPanel.setLayout(new BoxLayout(rankPanel, BoxLayout.Y_AXIS));
                         rankPanel.add(players.get(nick).getLabel());
                         playerNumberLabel.setText(String.valueOf(players.size()));
+                        ownerRankPanel.setLayout(new BoxLayout(ownerRankPanel, BoxLayout.Y_AXIS));
+                        players.get(nick).getAnswersLabel().setText("<html>" + players.get(nick).getAnswers() + "</html>");
+                        ownerRankPanel.add(players.get(nick).getAnswersLabel());
                     });
 
                     System.out.printf("[INFO] New player (%s)\n", nick);
@@ -85,7 +90,7 @@ public class OwnerView {
                         answerBLabel.setText(answerB);
                         answerCLabel.setText(answerC);
                         answerDLabel.setText(answerD);
-                        answerCorrectLabel.setText(correct);
+                        answerCorrectLabel.setText(correct.toUpperCase());
                         timeLabel.setText(String.valueOf(time));
                         playButton.setEnabled(false);
                     });
@@ -95,7 +100,10 @@ public class OwnerView {
                     } else {
                         timer = new Timer(1000, actionEvent -> {
                             if(time > 0) timeLabel.setText(String.valueOf(--time));
-                            else playButton.setEnabled(true);
+                            else {
+                                if(!autoNext) playButton.setEnabled(true);
+                                else Application.connection.send(Message.NEXT_QUESTION.toString());
+                            }
                         });
 
                         timer.start();
@@ -116,6 +124,25 @@ public class OwnerView {
 
                     players.get(nick).setPoints(players.get(nick).getPoints() + point);
                     SwingUtilities.invokeLater(() -> players.get(nick).updateLabel());
+                } else if(Objects.equals(type, Message.OWNER_RANK.toString())) {
+                    String content = message.substring(2);
+                    String number = String.valueOf(Integer.parseInt(content.substring(0, 3))+1);
+                    String answer = content.substring(3, 4).toUpperCase();
+                    String nick = content.substring(4);
+
+                    SwingUtilities.invokeLater(() -> {
+                        if(Objects.equals(answerCorrectLabel.getText(), answer))
+                            players.get(nick).addAnswer("<font color=green>" + number + answer + "</font>");
+                        else if(answer.equals("X"))
+                            players.get(nick).addAnswer(number + answer);
+                        else
+                            players.get(nick).addAnswer("<font color=red>" + number + answer + "</font>");
+                        players.get(nick).getAnswersLabel().setText("<html>" + players.get(nick).getAnswers() + "</html>");
+                    });
+                } else if(Objects.equals(type, Message.AUTO_NEXT.toString())) {
+                    String content = message.substring(2, 3);
+                    autoNext = (content.equals("y"));
+                    if(autoNext) playButton.setEnabled(false);
                 }
 
                 else {
@@ -125,6 +152,7 @@ public class OwnerView {
                 SwingUtilities.invokeLater(() -> {
                     Application.frame.revalidate();
                     Application.frame.repaint();
+                    Application.frame.pack();
                 });
             }
         }

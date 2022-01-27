@@ -15,7 +15,12 @@ class Question {
     std::string answerC;
     std::string answerD;
     std::string correct;
+    std::string time;
 public:
+    const std::string &getTime() const;
+
+    void setTime(const std::string &time);
+
     Question();
 
     int getNumber() const;

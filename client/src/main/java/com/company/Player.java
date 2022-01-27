@@ -16,7 +16,8 @@ public class Player {
         this.nick = nick;
         this.points = points;
         this.label = new JLabel();
-        this.answersLabel = new JLabel();
+        this.answers =  nick + " ";
+        this.answersLabel = new JLabel(answers);
         this.updateLabel();
     }
 
@@ -38,6 +39,10 @@ public class Player {
 
     public void updateLabel() {
         label.setText(nick + " " + points);
+    }
+
+    public void addAnswer(String answer) {
+        answers += answer + " ";
     }
 
     public String getNick() {

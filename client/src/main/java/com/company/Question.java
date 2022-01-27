@@ -8,8 +8,9 @@ public class Question {
     private String answerC;
     private String answerD;
     private String correct;
+    private String time;
 
-    public Question(int number, String question, String answerA, String answerB, String answerC, String answerD, String correct) {
+    public Question(int number, String question, String answerA, String answerB, String answerC, String answerD, String correct, String time) {
         this.number = number;
         this.question = question;
         this.answerA = answerA;
@@ -17,10 +18,19 @@ public class Question {
         this.answerC = answerC;
         this.answerD = answerD;
         this.correct = correct;
+        this.time = time;
     }
 
     public int getNumber() {
         return number;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
     }
 
     public void setNumber(int number) {

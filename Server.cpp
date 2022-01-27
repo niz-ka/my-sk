@@ -260,6 +260,11 @@ void Server::makeAction(std::string& message, const int clientFd) {
             printf("[INFO] Game code (%d) sent to (%d)\n", clients[clientFd].getGameCode(), clientFd);
         }
 
+       else if(prefix == MESSAGE::AUTO_NEXT) {
+           bool autoNextQuestion = (message.substr(0, 1) == "y");
+           games[clients[clientFd].getGameCode()].setAutoNextQuestion(autoNextQuestion);
+       }
+
        // Wysłano część jednego z pytań
        else {
             const int gameCode = clients[clientFd].getGameCode();
@@ -289,6 +294,10 @@ void Server::makeAction(std::string& message, const int clientFd) {
 
             else if(prefix  == MESSAGE::QUESTION_CORRECT) {
                 this->games[gameCode].getQuestions().back().setCorrect(message);
+            }
+
+            else if(prefix  == MESSAGE::QUESTION_TIME) {
+                this->games[gameCode].getQuestions().back().setTime(message);
             }
 
             else {
@@ -402,6 +411,10 @@ void Server::makeAction(std::string& message, const int clientFd) {
 
         this->games[gameCode].setStarted(true);
 
+        std::string autoNextQuestion = games[gameCode].isAutoNextQuestion() ? "y" : "n";
+
+        sendData(clientFd, msgToStr(MESSAGE::AUTO_NEXT) + autoNextQuestion);
+
         // Wyślij sygnał start
         for(auto& client : clients) {
             if(client.first == clientFd) continue;
@@ -427,7 +440,7 @@ void Server::makeAction(std::string& message, const int clientFd) {
                 this->sendData(client.first,  games[gameCode].getQuestions()[0].getAnswerB());
                 this->sendData(client.first,  games[gameCode].getQuestions()[0].getAnswerC());
                 this->sendData(client.first, games[gameCode].getQuestions()[0].getAnswerD());
-                this->sendData(client.first,  "30");
+                this->sendData(client.first,  games[gameCode].getQuestions()[0].getTime());
                 this->sendData(client.first, games[gameCode].getQuestions()[0].getCorrect());
             }
         }
@@ -487,7 +500,7 @@ void Server::makeAction(std::string& message, const int clientFd) {
             sendData(client.first, msgToStr(MESSAGE::PLAYERS_RANK) + point + clients[clientFd].getNick()) ;
         }
 
-        sendData(gameOwner, msgToStr(MESSAGE::OWNER_RANK) + std::to_string(submittedQuestionNumber) + submittedAnswer);
+        sendData(gameOwner, msgToStr(MESSAGE::OWNER_RANK) + message.substr(0, 3) + submittedAnswer + clients[clientFd].getNick());
 
     } else if(action == MESSAGE::NEXT_QUESTION) {
         const int gameCode = clients[clientFd].getGameCode();
@@ -521,7 +534,7 @@ void Server::makeAction(std::string& message, const int clientFd) {
                 this->sendData(client.first,  question.getAnswerB());
                 this->sendData(client.first,  question.getAnswerC());
                 this->sendData(client.first, question.getAnswerD());
-                this->sendData(client.first,  "30");
+                this->sendData(client.first,  question.getTime());
                 this->sendData(client.first, question.getCorrect());
 
                 if(number == questionsSize - 1) {

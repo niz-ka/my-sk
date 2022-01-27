@@ -4,8 +4,8 @@
 
 #include "Game.h"
 
-Game::Game() : ownerSocket(0), questions({}), code(0), started(false), currentQuestion(0) {}
-Game::Game(int socket, int gameCode) : ownerSocket(socket), questions({}), code(gameCode), started(false), currentQuestion(0) {}
+Game::Game() : ownerSocket(0), questions({}), code(0), started(false), currentQuestion(0), autoNextQuestion(false) {}
+Game::Game(int socket, int gameCode) : ownerSocket(socket), questions({}), code(gameCode), started(false), currentQuestion(0), autoNextQuestion(false) {}
 
 int Game::getOwnerSocket() const {
     return ownerSocket;
@@ -49,4 +49,12 @@ int Game::getCurrentQuestion() const {
 
 void Game::setCurrentQuestion(int currentQuestion) {
     Game::currentQuestion = currentQuestion;
+}
+
+bool Game::isAutoNextQuestion() const {
+    return autoNextQuestion;
+}
+
+void Game::setAutoNextQuestion(bool autoNextQuestion) {
+    Game::autoNextQuestion = autoNextQuestion;
 }

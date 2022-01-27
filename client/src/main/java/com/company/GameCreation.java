@@ -17,6 +17,8 @@ public class GameCreation {
     private JButton newQuestionButton;
     private JButton createButton;
     private JLabel numberLabel;
+    private JCheckBox autoBox;
+    private JTextField timeField;
 
     private int questionNumber = 1;
     private final ArrayList<Question> questions = new ArrayList<>();
@@ -28,6 +30,8 @@ public class GameCreation {
         correctButtons.add(correctB);
         correctButtons.add(correctC);
         correctButtons.add(correctD);
+
+        timeField.setText("30");
 
         newQuestionButton.addActionListener(actionEvent -> {
             if(question.getText().isEmpty() ||
@@ -44,6 +48,25 @@ public class GameCreation {
                 return;
             }
 
+            if(!timeField.getText().matches("\\d+")) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Czas musi być liczbą całkowitą!",
+                        "Błąd",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            int time = Integer.parseInt(timeField.getText());
+            if(time < 10 || time > 300) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Czas musi być z zakresu 10-300",
+                        "Błąd",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
             questions.add(new Question(
                     questionNumber,
                     question.getText(),
@@ -51,7 +74,8 @@ public class GameCreation {
                     answerB.getText(),
                     answerC.getText(),
                     answerD.getText(),
-                    correctButtons.getSelection().getActionCommand()
+                    correctButtons.getSelection().getActionCommand(),
+                    timeField.getText()
             ));
             ++questionNumber;
 
@@ -74,7 +98,19 @@ public class GameCreation {
                 return;
             }
 
+            if(questions.size() > 100) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Dodano za dużo pytań",
+                        "Błąd",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            String autoNextQuestion = autoBox.isSelected() ? "y" : "n";
+
             Application.connection.send(Message.QUESTION.toString() + Message.QUESTION_START);
+            Application.connection.send(Message.QUESTION.toString() + Message.AUTO_NEXT + autoNextQuestion);
             for(Question question : questions) {
                 String prefix = Message.QUESTION.toString();
                 Application.connection.send(prefix + Message.QUESTION_QUESTION + question.getQuestion());
@@ -83,6 +119,7 @@ public class GameCreation {
                 Application.connection.send(prefix + Message.QUESTION_ANSWER_C + question.getAnswerC());
                 Application.connection.send(prefix + Message.QUESTION_ANSWER_D + question.getAnswerD());
                 Application.connection.send(prefix + Message.QUESTION_CORRECT + question.getCorrect());
+                Application.connection.send(prefix + Message.QUESTION_TIME + question.getTime());
             }
             Application.connection.send(Message.QUESTION.toString() + Message.QUESTION_END);
 

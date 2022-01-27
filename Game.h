@@ -15,6 +15,12 @@ class Game {
     int code;
     bool started;
     int currentQuestion;
+    bool autoNextQuestion;
+public:
+    bool isAutoNextQuestion() const;
+
+    void setAutoNextQuestion(bool autoNextQuestion);
+
 public:
     Game();
     explicit Game(int socket, int gameCode);

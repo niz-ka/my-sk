@@ -1,6 +1,8 @@
 package com.company;
 
 import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 
@@ -33,10 +35,10 @@ public class GameView {
         thread = new Thread(new Updater());
         thread.start();
 
-        answerAbutton.addActionListener(actionEvent -> sendAnswer("a"));
-        answerBbutton.addActionListener(actionEvent -> sendAnswer("b"));
-        answerCbutton.addActionListener(actionEvent -> sendAnswer("c"));
-        answerDbutton.addActionListener(actionEvent -> sendAnswer("d"));
+        answerAbutton.addActionListener(actionEvent -> sendAnswer("a", actionEvent));
+        answerBbutton.addActionListener(actionEvent -> sendAnswer("b", actionEvent));
+        answerCbutton.addActionListener(actionEvent -> sendAnswer("c", actionEvent));
+        answerDbutton.addActionListener(actionEvent -> sendAnswer("d", actionEvent));
     }
 
     private void setButtonsEnabled(boolean enabled) {
@@ -46,10 +48,17 @@ public class GameView {
         answerDbutton.setEnabled(enabled);
     }
 
-    private void sendAnswer(String answer) {
+    private void sendAnswer(String answer, ActionEvent actionEvent) {
         String message = String.format("%s%03d%s", Message.ANSWER, questionNumber - 1, answer);
         Application.connection.send(message);
         setButtonsEnabled(false);
+        JButton button = (JButton) actionEvent.getSource();
+        String text = button.getText();
+        answerAbutton.setText("");
+        answerBbutton.setText("");
+        answerCbutton.setText("");
+        answerDbutton.setText("");
+        button.setText(text);
     }
 
     class Updater implements Runnable {
@@ -92,7 +101,7 @@ public class GameView {
                                 // Brak odpowiedzi
                                 if(answerAbutton.isEnabled()) {
                                     questionLabel.setText("Brak odpowiedzi :/ Czekaj na innych...");
-                                    sendAnswer("x");
+                                    sendAnswer("x", null);
                                 }
                             }
                         });
@@ -122,9 +131,9 @@ public class GameView {
                         SwingUtilities.invokeLater(() -> {
                             pointsLabel.setText(String.valueOf(points));
                             if(point == 1) {
-                                questionLabel.setText("DOBRZE :) Czekaj na innych ...");
+                                questionLabel.setText("<html><font color=green>DOBRZE :) Czekaj na innych ...</font></html>");
                             } else {
-                                questionLabel.setText("ŹLE :( Czekaj na innych ...");
+                                questionLabel.setText("<html><font color=red>ŹLE :( Czekaj na innych ...</font></html>");
                             }
                         });
 
@@ -151,6 +160,7 @@ public class GameView {
                 SwingUtilities.invokeLater(() -> {
                     Application.frame.revalidate();
                     Application.frame.repaint();
+                    Application.frame.pack();
                 });
             }
         }

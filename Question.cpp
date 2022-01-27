@@ -69,3 +69,11 @@ void Question::print() {
           number, question.c_str(), answerA.c_str(), answerB.c_str(), answerC.c_str(), answerD.c_str(), correct.c_str()
           );
 }
+
+const std::string &Question::getTime() const {
+    return time;
+}
+
+void Question::setTime(const std::string &time) {
+    Question::time = time;
+}
