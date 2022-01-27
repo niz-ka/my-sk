@@ -27,7 +27,7 @@ public:
 private:
     void terminate(const std::string& description);
     size_t getNumberOfClients() const;
-    void disconnectClient(int clientFd);
+    void disconnectClient(int clientFd, unsigned long& i);
     int connectClient();
     static size_t readData(int clientFd, int length, std::string& data);
     static int stringToInt(const std::string& number);

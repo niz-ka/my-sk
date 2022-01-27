@@ -29,44 +29,34 @@ size_t Server::getNumberOfClients() const {
  * Zamyka gniazdo i usuwa klienta z listy klientów
  * @param clientFd deskryptor gniazda klienta
  */
-void Server::disconnectClient(int clientFd) {
+void Server::disconnectClient(int clientFd, unsigned long& i) {
     printf("[INFO] Client with address %s and port %d disconnected. Number of clients: %zu\n",
            inet_ntoa(this->clients[clientFd].getAddressPointer()->sin_addr),
            this->clients[clientFd].getAddressPointer()->sin_port,
            this->getNumberOfClients() - 1);
 
+    const int gameCode = clients[clientFd].getGameCode();
 
-//    // Usuń grę tego gracza (jeśli istnieje)
-//    if (this->games.find(clientFd) != this->games.end()) {
-//        std::vector<int> toRemove = {};
-//
-//        for(auto& client : this->clients) {
-//            if((client.first != clientFd) &&
-//            client.second.getGameOwnerSocket() == clientFd) {
-//                shutdown(client.first, SHUT_RDWR);
-//                close(client.first);
-//                toRemove.push_back(client.first);
-//            }
-//        }
-//
-//        for(auto& element : toRemove) {
-//            this->clients.erase(element);
-//        }
-//
-//    }
+    // To właściciel jakiejś gry
+    if(games[gameCode].getOwnerSocket() == clientFd) {
+        for(auto& client : clients) {
+            if(client.first == clientFd || client.second.getGameCode() != gameCode) continue;
+            sendData(client.first, msgToStr(MESSAGE::GAME_END));
+            client.second.setGameCode(0);
+            client.second.setNick("");
+            client.second.setAnswered(false);
+        }
+        games.erase(gameCode);
+    }
 
-    // Usuń dane tego klienta
+    // Usuń *tego* klienta
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
 
-    // Ustaw właściciela gry na brak właściciela
-    const int gameCode = clients[clientFd].getGameCode();
-    if (games.find(gameCode) != games.end()) {
-        if (games[gameCode].getOwnerSocket() == clientFd)
-            games[gameCode].setOwnerSocket(0);
-    }
-
     this->clients.erase(clientFd);
+
+    pollfds.erase(pollfds.begin() + (long) i);
+    --i;
 }
 
 /**
@@ -613,7 +603,7 @@ void Server::run() {
             this->terminate("poll()");
         }
 
-        // Uwaga na iterowanie z jednoczesną modyfikacją!
+
         auto pollfds_size = pollfds.size();
         for (std::vector<pollfd>::size_type i = 0; i < pollfds_size; ++i) {
 
@@ -622,6 +612,8 @@ void Server::run() {
 
             // Wszystko inne niż POLLIN to błąd!
             if (pollfds[i].revents != POLLIN) {
+                this->disconnectClient(pollfds[i].fd, i);
+                pollfds_size = pollfds.size();
                 printf("[ERROR] revents != POLLIN\n");
                 continue;
             }
@@ -640,10 +632,8 @@ void Server::run() {
                 std::string messageLength;
                 size_t bytes = this->readData(clientFd, HEADER, messageLength);
                 if (bytes == 0) {
-                    this->disconnectClient(clientFd);
-                    pollfds.erase(pollfds.begin() + (long) i);
+                    this->disconnectClient(clientFd, i);
                     pollfds_size = pollfds.size();
-                    --i;
                 }
 
                 if (bytes == 0 || bytes == -1) continue;
@@ -656,10 +646,8 @@ void Server::run() {
                 std::string message;
                 bytes = this->readData(clientFd, length, message);
                 if (bytes == 0) {
-                    this->disconnectClient(clientFd);
-                    pollfds.erase(pollfds.begin() + (long) i);
+                    this->disconnectClient(clientFd, i);
                     pollfds_size = pollfds.size();
-                    --i;
                 }
 
                 if (bytes == 0 || bytes == -1) continue;
