@@ -52,13 +52,23 @@ public class GameView {
         String message = String.format("%s%03d%s", Message.ANSWER, questionNumber - 1, answer);
         Application.connection.send(message);
         setButtonsEnabled(false);
-        JButton button = (JButton) actionEvent.getSource();
-        String text = button.getText();
-        answerAbutton.setText("");
-        answerBbutton.setText("");
-        answerCbutton.setText("");
-        answerDbutton.setText("");
-        button.setText(text);
+
+        if(actionEvent != null) {
+            JButton button = (JButton) actionEvent.getSource();
+            String text = button.getText();
+            answerAbutton.setText("");
+            answerBbutton.setText("");
+            answerCbutton.setText("");
+            answerDbutton.setText("");
+            button.setText(text);
+        }
+
+        else {
+            answerAbutton.setText("");
+            answerBbutton.setText("");
+            answerCbutton.setText("");
+            answerDbutton.setText("");
+        }
     }
 
     class Updater implements Runnable {
@@ -97,26 +107,20 @@ public class GameView {
                     else {
                         timer = new Timer(1000, actionEvent -> {
                             if(time > 0) timeLabel.setText(String.valueOf(--time));
-                            else {
-                                // Brak odpowiedzi
-                                if(answerAbutton.isEnabled()) {
-                                    questionLabel.setText("Brak odpowiedzi :/ Czekaj na innych...");
-                                    sendAnswer("x", null);
-                                }
-                            }
                         });
-
                         timer.start();
                     }
 
                 }
 
-                else if(Objects.equals(type, Message.QUESTION_END.toString())) {
-                    JOptionPane.showMessageDialog(
-                            null,
-                            "Gra została zakończona",
-                            "Koniec",
-                            JOptionPane.INFORMATION_MESSAGE);
+                else if(Objects.equals(type, Message.GAME_END.toString())) {
+                    questionLabel.setText("KONIEC GRY");
+                    timer.stop();
+                    SwingUtilities.invokeLater(() -> {
+                        Application.frame.revalidate();
+                        Application.frame.repaint();
+                        Application.frame.pack();
+                    });
                     return;
                 }
 

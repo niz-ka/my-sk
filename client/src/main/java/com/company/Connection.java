@@ -26,11 +26,12 @@ public class Connection {
     }
 
     public void send(String message) {
-        message = String.format("%04d", message.getBytes().length) + message;
         if(message.length() >= 10000) {
             System.out.println("[ERROR] Message too long");
             return;
         }
+
+        message = String.format("%04d", message.getBytes().length) + message;
 
         try {
             out.write(message.getBytes());

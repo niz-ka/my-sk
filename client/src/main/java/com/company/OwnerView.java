@@ -18,6 +18,7 @@ public class OwnerView {
     private JLabel timeLabel;
     private JPanel rankPanel;
     private JPanel ownerRankPanel;
+    private JLabel questionNumberLabel;
 
     private final Thread thread;
     private boolean started = false;
@@ -89,6 +90,7 @@ public class OwnerView {
 
                     SwingUtilities.invokeLater(() -> {
                         questionLabel.setText(question);
+                        questionNumberLabel.setText("Pytanie " + questionNumber);
                         answerALabel.setText(answerA);
                         answerBLabel.setText(answerB);
                         answerCLabel.setText(answerC);
@@ -116,12 +118,21 @@ public class OwnerView {
                     }
 
 
-                } else if(Objects.equals(type, Message.QUESTION_END.toString())) {
-                    JOptionPane.showMessageDialog(
-                            null,
-                            "Gra została zakończona",
-                            "Koniec",
-                            JOptionPane.INFORMATION_MESSAGE);
+                } else if(Objects.equals(type, Message.GAME_END.toString())) {
+                    playButton.setEnabled(false);
+                    playButton.setText("KONIEC GRY");
+                    answerALabel.setText("");
+                    questionLabel.setText("");
+                    answerCLabel.setText("");
+                    answerDLabel.setText("");
+                    answerCorrectLabel.setText("");
+                    answerBLabel.setText("KONIEC GRY");
+                    timer.stop();
+                    SwingUtilities.invokeLater(() -> {
+                        Application.frame.revalidate();
+                        Application.frame.repaint();
+                        Application.frame.pack();
+                    });
                     return;
                 } else if(Objects.equals(type, Message.PLAYERS_RANK.toString())) {
                     String content = message.substring(2);

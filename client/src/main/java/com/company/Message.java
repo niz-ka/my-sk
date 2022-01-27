@@ -25,7 +25,8 @@ public enum Message {
     QUESTION_TIME(31),
     PLAYERS_RANK(32),
     OWNER_RANK(33),
-    AUTO_NEXT(34);
+    AUTO_NEXT(34),
+    GAME_END(35);
 
     private final int value;
 
