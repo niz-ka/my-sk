@@ -1,7 +1,3 @@
-//
-// Created by kamil on 08.01.2022.
-//
-
 #include <cstdlib>
 #include <string>
 #include <unistd.h>
@@ -10,10 +6,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <vector>
-#include <iostream>
 #include <random>
 #include "Server.h"
 #include "Message.h"
+#include "helpers.h"
 
 #define SERVER_PORT 5050
 #define HEADER 4
@@ -24,12 +20,7 @@ size_t Server::getNumberOfClients() const {
     return this->clients.size();
 }
 
-
-/**
- * Zamyka gniazdo i usuwa klienta z listy klientów
- * @param clientFd deskryptor gniazda klienta
- */
-void Server::disconnectClient(int clientFd, unsigned long& i) {
+void Server::disconnectClient(int clientFd, unsigned long &i) {
     printf("[INFO] Client with address %s and port %d disconnected. Number of clients: %zu\n",
            inet_ntoa(this->clients[clientFd].getAddressPointer()->sin_addr),
            this->clients[clientFd].getAddressPointer()->sin_port,
@@ -38,10 +29,10 @@ void Server::disconnectClient(int clientFd, unsigned long& i) {
     const int gameCode = clients[clientFd].getGameCode();
 
     // To właściciel jakiejś gry
-    if(games[gameCode].getOwnerSocket() == clientFd) {
-        for(auto& client : clients) {
-            if(client.first == clientFd || client.second.getGameCode() != gameCode) continue;
-            sendData(client.first, msgToStr(MESSAGE::GAME_END));
+    if (games[gameCode].getOwnerSocket() == clientFd) {
+        for (auto &client: clients) {
+            if (client.first == clientFd || client.second.getGameCode() != gameCode) continue;
+            sendData(client.first, msgToStr(MESSAGE::CONNECTION_LOST));
             client.second.setGameCode(0);
             client.second.setNick("");
             client.second.setAnswered(false);
@@ -59,10 +50,6 @@ void Server::disconnectClient(int clientFd, unsigned long& i) {
     --i;
 }
 
-/**
- * Akceptuje nowego klienta i dodaje do listy klientów
- * @return deskryptor klienta lub -1 w przypadku błędu
- */
 int Server::connectClient() {
     // Akceptuj nowego klienta
     sockaddr_in remoteAddress{};
@@ -85,10 +72,6 @@ int Server::connectClient() {
     return clientSocket;
 }
 
-/**
- * Kończy działanie serwera z błędem
- * @param description Opis błędu (np. funkcja powodująca błąd)
- */
 void Server::terminate(const std::string &description) {
     perror(("[ERROR] " + description).c_str());
 
@@ -107,105 +90,7 @@ void Server::terminate(const std::string &description) {
     exit(EXIT_FAILURE);
 }
 
-/**
- * Czyta dane z zadanego gniazda
- * @param clientFd deskryptor gniazda klienta
- * @param length wielkość danych do odczytania
- * @param data referencja do zmiennej, w której zapisana zostanie wiadomość
- * @return liczbę przeczytanych bajtów / 0 gdy klient się rozłączył / -1 gdy wystąpił błąd
- */
-size_t Server::readData(int clientFd, int length, std::string &data) {
-    char *message = new char[length];
-    size_t bytes;
-    size_t bytesRead = 0;
 
-    while (bytesRead < length) {
-        bytes = recv(clientFd, message + bytesRead, length - bytesRead, MSG_DONTWAIT);
-
-        if (bytes == -1) {
-            delete[] message;
-            perror("[ERROR] recv()");
-            return -1;
-        }
-
-        if (bytes == 0) {
-            delete[] message;
-            return 0;
-        }
-
-        bytesRead += bytes;
-    }
-
-    data = std::string(message, length);
-    delete[] message;
-
-    return bytesRead;
-}
-
-/**
- * Konwertuje liczbę w postaci stringa do inta
- * @param number Liczba w postaci tekstowej
- * @return Liczbę w postaci liczbowej (-1 w przypadku błędu, TODO niezbyt trafnie jak z atoi :)
- */
-int Server::stringToInt(const std::string &number) {
-
-    int numberInt;
-
-    try {
-        numberInt = std::stoi(number);
-    } catch (const std::invalid_argument &ia) {
-        printf("[ERROR] Conversion impossible (%s)\n", number.c_str());
-        return -1;
-    } catch (const std::out_of_range &ofr) {
-        perror("[ERROR] Conversion out ouf range");
-        return -1;
-    }
-
-    return numberInt;
-
-}
-
-size_t Server::sendData(int socket, const std::string &data) {
-    if (data.length() > 10000) {
-        printf("[ERROR] Message too long\n");
-        return -1;
-    }
-
-    const char *tmp = data.c_str();
-
-    char *buf = new char[strlen(tmp) + 4];
-    if (sprintf(buf, "%04zu%s", strlen(tmp), tmp) < 0) {
-        perror("[ERROR] sprintf()");
-        delete[] buf;
-        return -1;
-    }
-
-    const size_t length = strlen(buf);
-
-    size_t total = 0;
-    size_t bytes;
-    size_t bytesLeft = length;
-
-    while (total < length) {
-        bytes = send(socket, buf + total, bytesLeft, MSG_DONTWAIT);
-        if (bytes == -1) {
-            perror("[ERROR] send()");
-            delete[] buf;
-            return -1;
-        }
-
-        total += bytes;
-        bytesLeft -= bytes;
-    }
-
-    delete[] buf;
-    return total;
-}
-
-/**
- * Podejmuje akcję w zależności od otrzymanej wiadomości
- * @param message wiadomość przesłana przez klienta
- */
 void Server::makeAction(std::string &message, const int clientFd) {
 
     const MESSAGE action = extractMsg(message);
@@ -218,7 +103,7 @@ void Server::makeAction(std::string &message, const int clientFd) {
 
             for (auto &game: games) {
                 if (game.second.getOwnerSocket() == clientFd || clients[clientFd].getGameCode() != 0) {
-                    printf("[INFO] Permission denied\n");
+                    printf("[ERROR] Permission denied\n");
                     return;
                 }
             }
@@ -250,14 +135,14 @@ void Server::makeAction(std::string &message, const int clientFd) {
 
         // Zakończono wysyłanie pytań, wyślij kod gry
         if (prefix == MESSAGE::QUESTION_END) {
-            this->sendData(clientFd, std::to_string(clients[clientFd].getGameCode()));
+            sendData(clientFd, std::to_string(clients[clientFd].getGameCode()));
             printf("[INFO] Game code (%d) sent to (%d)\n", clients[clientFd].getGameCode(), clientFd);
         } else if (prefix == MESSAGE::AUTO_NEXT) {
             bool autoNextQuestion = (message.substr(0, 1) == "y");
             games[clients[clientFd].getGameCode()].setAutoNextQuestion(autoNextQuestion);
         }
 
-            // Wysłano część jednego z pytań
+        // Wysłano część jednego z pytań
         else {
             const int gameCode = clients[clientFd].getGameCode();
 
@@ -284,9 +169,10 @@ void Server::makeAction(std::string &message, const int clientFd) {
             }
         }
     }
-        // Ktoś próbuje dołączyć do gry (wpisał kod)
+
+    // Ktoś próbuje dołączyć do gry (wpisał kod)
     else if (action == MESSAGE::JOINING) {
-        const int submittedCode = this->stringToInt(message);
+        const int submittedCode = stringToInt(message);
 
         if (clients[clientFd].getGameCode() != 0) {
             printf("[ERROR] Permission denied\n");
@@ -302,24 +188,24 @@ void Server::makeAction(std::string &message, const int clientFd) {
 
                 // Gra już trwa
                 if (game.second.isStarted()) {
-                    this->sendData(clientFd, msgToStr(MESSAGE::GAME_ALREADY_STARTED));
+                    sendData(clientFd, msgToStr(MESSAGE::GAME_ALREADY_STARTED));
                     printf("[INFO] Game is already running (gameCodeView)\n");
                     return;
                 }
 
                 // Gracz dołącza do gry
-                this->sendData(clientFd, msgToStr(MESSAGE::JOINING_OK));
+                sendData(clientFd, msgToStr(MESSAGE::JOINING_OK));
                 this->clients[clientFd].setGameCode(correctCode);
                 printf("[INFO] Player (%d) typed correct code (%d)\n", clientFd, correctCode);
                 return;
             }
         }
 
-        this->sendData(clientFd, msgToStr(MESSAGE::GAME_NOT_EXISTS));
+        sendData(clientFd, msgToStr(MESSAGE::GAME_NOT_EXISTS));
         printf("[INFO] Game with code (%d) not exists\n", submittedCode);
     }
 
-        // Gracz wysłał pseudonim
+    // Gracz wysłał pseudonim
     else if (action == MESSAGE::NICK_CHOOSING) {
         const std::string &nick = message;
         const int gameCode = clients[clientFd].getGameCode();
@@ -331,7 +217,7 @@ void Server::makeAction(std::string &message, const int clientFd) {
 
         if (games.find(gameCode) == games.end()) {
             printf("[INFO] Game with code (%d) not exists\n", gameCode);
-            this->sendData(clientFd, msgToStr(MESSAGE::GAME_NOT_EXISTS));
+            sendData(clientFd, msgToStr(MESSAGE::GAME_NOT_EXISTS));
         }
 
 
@@ -339,7 +225,7 @@ void Server::makeAction(std::string &message, const int clientFd) {
         if (this->games[gameCode].isStarted()) {
             // Usuwamy gracza z gry
             this->clients[clientFd].setGameCode(0);
-            this->sendData(clientFd, msgToStr(MESSAGE::GAME_ALREADY_STARTED));
+            sendData(clientFd, msgToStr(MESSAGE::GAME_ALREADY_STARTED));
             printf("[INFO] Game with code (%d) is already running (gameNickView)\n", gameCode);
             return;
         }
@@ -352,7 +238,7 @@ void Server::makeAction(std::string &message, const int clientFd) {
             if (clientFd == anotherClientFd) continue;
 
             if ((nick == anotherClient.second.getNick()) && (gameCode == anotherClient.second.getGameCode())) {
-                this->sendData(clientFd, msgToStr(MESSAGE::NICK_USED));
+                sendData(clientFd, msgToStr(MESSAGE::NICK_USED));
                 printf("[INFO] Nick (%s) already exists for game with code (%d)\n", nick.c_str(), gameCode);
                 return;
             }
@@ -362,18 +248,13 @@ void Server::makeAction(std::string &message, const int clientFd) {
 
         // Wyślij wiadomość do twórcy gry o nowym graczu
         const int ownerSocket = games[gameCode].getOwnerSocket();
+        sendData(ownerSocket, msgToStr(MESSAGE::NEW_PLAYER) + nick);
 
-        if (clients.find(ownerSocket) != clients.end()) {
-            this->sendData(ownerSocket, msgToStr(MESSAGE::NEW_PLAYER) + nick);
-        } else {
-            printf("[INFO] Game owner is not present\n");
-        }
-
-        this->sendData(clientFd, msgToStr(MESSAGE::NICK_OK));
+        sendData(clientFd, msgToStr(MESSAGE::NICK_OK));
         printf("[INFO] Nick (%s) for player (%d) set\n", nick.c_str(), clientFd);
     }
 
-        // Właściciel gry wysłał sygnał do rozpoczęcia gry
+    // Właściciel gry wysłał sygnał do rozpoczęcia gry
     else if (action == MESSAGE::GAME_START) {
         const int gameCode = clients[clientFd].getGameCode();
         // Ktoś nie jest właścicielem, a próbuje rozpocząć grę!
@@ -398,7 +279,7 @@ void Server::makeAction(std::string &message, const int clientFd) {
             if (client.first == clientFd) continue;
 
             if (client.second.getGameCode() == gameCode) {
-                this->sendData(client.first, msgToStr(MESSAGE::GAME_START));
+                sendData(client.first, msgToStr(MESSAGE::GAME_START));
             }
         }
 
@@ -412,17 +293,18 @@ void Server::makeAction(std::string &message, const int clientFd) {
             }
         }
 
+        // Wyślij pierwsze pytanie
         for (auto &client: clients) {
             if (client.second.getGameCode() == gameCode) {
-                Question& question = games[gameCode].getQuestions()[0];
-                this->sendData(client.first, msgToStr(MESSAGE::QUESTION));
-                this->sendData(client.first, question.getQuestion());
-                this->sendData(client.first, question.getAnswerA());
-                this->sendData(client.first, question.getAnswerB());
-                this->sendData(client.first, question.getAnswerC());
-                this->sendData(client.first, question.getAnswerD());
-                this->sendData(client.first, question.getTime());
-                this->sendData(client.first, question.getCorrect());
+                Question &question = games[gameCode].getQuestions()[0];
+                sendData(client.first, msgToStr(MESSAGE::QUESTION));
+                sendData(client.first, question.getQuestion());
+                sendData(client.first, question.getAnswerA());
+                sendData(client.first, question.getAnswerB());
+                sendData(client.first, question.getAnswerC());
+                sendData(client.first, question.getAnswerD());
+                sendData(client.first, question.getTime());
+                sendData(client.first, question.getCorrect());
             }
         }
 
@@ -507,9 +389,9 @@ void Server::makeAction(std::string &message, const int clientFd) {
         }
 
         // To już było ostatnie pytanie
-        if((questionNumber == games[gameCode].getQuestions().size() - 1)) {
-            for(auto& client : clients) {
-                if(client.second.getGameCode() == gameCode) {
+        if ((questionNumber == games[gameCode].getQuestions().size() - 1)) {
+            for (auto &client: clients) {
+                if (client.second.getGameCode() == gameCode) {
                     sendData(client.first, msgToStr(MESSAGE::GAME_END));
                     client.second.setGameCode(0);
                     client.second.setAnswered(false);
@@ -532,14 +414,14 @@ void Server::makeAction(std::string &message, const int clientFd) {
             if (client.second.getGameCode() == gameCode) {
                 const Question &question = games[gameCode].getQuestions()[number];
 
-                this->sendData(client.first, msgToStr(MESSAGE::QUESTION));
-                this->sendData(client.first, question.getQuestion());
-                this->sendData(client.first, question.getAnswerA());
-                this->sendData(client.first, question.getAnswerB());
-                this->sendData(client.first, question.getAnswerC());
-                this->sendData(client.first, question.getAnswerD());
-                this->sendData(client.first, question.getTime());
-                this->sendData(client.first, question.getCorrect());
+                sendData(client.first, msgToStr(MESSAGE::QUESTION));
+                sendData(client.first, question.getQuestion());
+                sendData(client.first, question.getAnswerA());
+                sendData(client.first, question.getAnswerB());
+                sendData(client.first, question.getAnswerC());
+                sendData(client.first, question.getAnswerD());
+                sendData(client.first, question.getTime());
+                sendData(client.first, question.getCorrect());
 
                 client.second.setAnswered(false);
             }
@@ -552,9 +434,6 @@ void Server::makeAction(std::string &message, const int clientFd) {
 
 }
 
-/**
- * Uruchamia serwer
- */
 void Server::run() {
 
     this->socketFd = socket(PF_INET, SOCK_STREAM, 0);
@@ -588,21 +467,15 @@ void Server::run() {
     pollfds.push_back({this->socketFd, POLLIN, 0});
 
     // Główna pętla programu
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "EndlessLoop"
+    #pragma clang diagnostic push
+    #pragma ide diagnostic ignored "EndlessLoop"
     while (true) {
         int error_flag = poll(pollfds.data(), pollfds.size(), -1);
-
-        // Przekroczono czas oczekiwania na zdarzenie (trzeci argument poll)
-        if (error_flag == 0) {
-            this->terminate("poll() timeout");
-        }
 
         // Błąd poll!
         if (error_flag == -1) {
             this->terminate("poll()");
         }
-
 
         auto pollfds_size = pollfds.size();
         for (std::vector<pollfd>::size_type i = 0; i < pollfds_size; ++i) {
@@ -630,7 +503,7 @@ void Server::run() {
 
                 // Odbierz długość wiadomości
                 std::string messageLength;
-                size_t bytes = this->readData(clientFd, HEADER, messageLength);
+                size_t bytes = readData(clientFd, HEADER, messageLength);
                 if (bytes == 0) {
                     this->disconnectClient(clientFd, i);
                     pollfds_size = pollfds.size();
@@ -644,7 +517,7 @@ void Server::run() {
 
                 // Odbierz wiadomość o długości przesłanej w nagłówku
                 std::string message;
-                bytes = this->readData(clientFd, length, message);
+                bytes = readData(clientFd, length, message);
                 if (bytes == 0) {
                     this->disconnectClient(clientFd, i);
                     pollfds_size = pollfds.size();
@@ -659,5 +532,5 @@ void Server::run() {
 
         }
     }
-#pragma clang diagnostic pop
+    #pragma clang diagnostic pop
 }

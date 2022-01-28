@@ -107,6 +107,12 @@ public class GameView {
                     else {
                         timer = new Timer(1000, actionEvent -> {
                             if(time > 0) timeLabel.setText(String.valueOf(--time));
+                            else {
+                                if(answerAbutton.isEnabled()) {
+                                    questionLabel.setText("Brak odpowiedzi :/");
+                                    setButtonsEnabled(false);
+                                }
+                            }
                         });
                         timer.start();
                     }
