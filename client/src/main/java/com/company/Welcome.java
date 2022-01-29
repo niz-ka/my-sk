@@ -48,6 +48,12 @@ public class Welcome {
                             "Gra już się toczy!",
                             "Błąd",
                             JOptionPane.INFORMATION_MESSAGE);
+                } else if (Objects.equals(status, Message.CONNECTION_LOST.toString())) {
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Utracono połączenie!",
+                            "Błąd",
+                            JOptionPane.ERROR_MESSAGE);
                 } else {
                     System.out.printf("[ERROR] Undefined message (%s)\n", status);
                 }

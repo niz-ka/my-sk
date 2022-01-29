@@ -12,39 +12,29 @@
 class Game {
     int ownerSocket;
     std::vector<Question> questions;
-    int code;
     bool started;
     int currentQuestion;
     bool autoNextQuestion;
 public:
-    bool isAutoNextQuestion() const;
+    [[nodiscard]] bool isAutoNextQuestion() const;
 
     void setAutoNextQuestion(bool autoNextQuestion);
 
 public:
     Game();
-    explicit Game(int socket, int gameCode);
+    explicit Game(int socket);
 
-    int getCurrentQuestion() const;
+    [[nodiscard]] int getCurrentQuestion() const;
 
-    void setCurrentQuestion(int currentQuestion);
     int nextQuestion();
 
-    bool isStarted() const;
+    [[nodiscard]] bool isStarted() const;
 
     void setStarted(bool Started);
 
-    int getOwnerSocket() const;
-
-    void setOwnerSocket(int ownerSocket);
+    [[nodiscard]] int getOwnerSocket() const;
 
     std::vector<Question> &getQuestions();
-
-    void setQuestions(const std::vector<Question> &questions);
-
-    int getCode() const;
-
-    void setCode(int code);
 };
 
 

@@ -1,14 +1,9 @@
-//
-// Created by kamil on 23.01.2022.
-//
-
 #ifndef SIECI_PROJEKT_QUESTION_H
 #define SIECI_PROJEKT_QUESTION_H
 
 #include <iostream>
 
 class Question {
-    int number;
     std::string question;
     std::string answerA;
     std::string answerB;
@@ -17,41 +12,35 @@ class Question {
     std::string correct;
     std::string time;
 public:
-    const std::string &getTime() const;
+    [[nodiscard]] const std::string &getTime() const;
 
     void setTime(const std::string &time);
 
     Question();
 
-    int getNumber() const;
-
-    void setNumber(int number);
-
-    const std::string &getQuestion() const;
+    [[nodiscard]] const std::string &getQuestion() const;
 
     void setQuestion(const std::string &question);
 
-    const std::string &getAnswerA() const;
+    [[nodiscard]] const std::string &getAnswerA() const;
 
     void setAnswerA(const std::string &answerA);
 
-    const std::string &getAnswerB() const;
+    [[nodiscard]] const std::string &getAnswerB() const;
 
     void setAnswerB(const std::string &answerB);
 
-    const std::string &getAnswerC() const;
+    [[nodiscard]] const std::string &getAnswerC() const;
 
     void setAnswerC(const std::string &answerC);
 
-    const std::string &getAnswerD() const;
+    [[nodiscard]] const std::string &getAnswerD() const;
 
     void setAnswerD(const std::string &answerD);
 
-    const std::string &getCorrect() const;
+    [[nodiscard]] const std::string &getCorrect() const;
 
     void setCorrect(const std::string &correct);
-
-    void print();
 };
 
 

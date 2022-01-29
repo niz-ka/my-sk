@@ -1,14 +1,14 @@
 package com.company;
 
 public class Question {
-    private int number;
-    private String question;
-    private String answerA;
-    private String answerB;
-    private String answerC;
-    private String answerD;
-    private String correct;
-    private String time;
+    private final int number;
+    private final String question;
+    private final String answerA;
+    private final String answerB;
+    private final String answerC;
+    private final String answerD;
+    private final String correct;
+    private final String time;
 
     public Question(int number, String question, String answerA, String answerB, String answerC, String answerD, String correct, String time) {
         this.number = number;
@@ -21,68 +21,32 @@ public class Question {
         this.time = time;
     }
 
-    public int getNumber() {
-        return number;
-    }
-
     public String getTime() {
         return time;
-    }
-
-    public void setTime(String time) {
-        this.time = time;
-    }
-
-    public void setNumber(int number) {
-        this.number = number;
     }
 
     public String getQuestion() {
         return question;
     }
 
-    public void setQuestion(String question) {
-        this.question = question;
-    }
-
     public String getAnswerA() {
         return answerA;
-    }
-
-    public void setAnswerA(String answerA) {
-        this.answerA = answerA;
     }
 
     public String getAnswerB() {
         return answerB;
     }
 
-    public void setAnswerB(String answerB) {
-        this.answerB = answerB;
-    }
-
     public String getAnswerC() {
         return answerC;
-    }
-
-    public void setAnswerC(String answerC) {
-        this.answerC = answerC;
     }
 
     public String getAnswerD() {
         return answerD;
     }
 
-    public void setAnswerD(String answerD) {
-        this.answerD = answerD;
-    }
-
     public String getCorrect() {
         return correct;
-    }
-
-    public void setCorrect(String correct) {
-        this.correct = correct;
     }
 
     @Override

@@ -16,7 +16,7 @@ public class WindowFrame extends JFrame {
         this.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                if(Application.connection != null)
+                if (Application.connection != null)
                     Application.connection.close();
             }
         });

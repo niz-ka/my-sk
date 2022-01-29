@@ -20,23 +20,22 @@ public class OwnerView {
     private JPanel ownerRankPanel;
     private JLabel questionNumberLabel;
 
-    private final Thread thread;
     private boolean started = false;
     private int time = 0;
     private Timer timer;
     private boolean autoNext = false;
     private int questionNumber = 0;
 
-    private LinkedHashMap<String, Player> players = new LinkedHashMap<>();
+    private final LinkedHashMap<String, Player> players = new LinkedHashMap<>();
 
     public OwnerView(String gameCode) {
         codeLabel.setText(gameCode);
-        thread = new Thread(new Updater());
+        Thread thread = new Thread(new Updater());
         thread.start();
 
         playButton.addActionListener(actionEvent -> {
-            if(!started) {
-                if(players.size() > 0) {
+            if (!started) {
+                if (players.size() > 0) {
                     Application.connection.send(Message.GAME_START.toString());
                     started = true;
                     playButton.setText("Następne pytanie");
@@ -58,11 +57,11 @@ public class OwnerView {
     class Updater implements Runnable {
         @Override
         public void run() {
-            while(true) {
+            while (true) {
                 String message = Application.connection.receive();
                 String type = message.substring(0, 2);
 
-                if(Objects.equals(type, Message.NEW_PLAYER.toString())) {
+                if (Objects.equals(type, Message.NEW_PLAYER.toString())) {
                     String nick = message.substring(2);
 
                     players.put(nick, new Player(nick, 0));
@@ -77,7 +76,7 @@ public class OwnerView {
                     });
 
                     System.out.printf("[INFO] New player (%s)\n", nick);
-                } else if(Objects.equals(type, Message.QUESTION.toString())) {
+                } else if (Objects.equals(type, Message.QUESTION.toString())) {
                     String question = Application.connection.receive();
                     String answerA = Application.connection.receive();
                     String answerB = Application.connection.receive();
@@ -100,13 +99,13 @@ public class OwnerView {
                         playButton.setEnabled(false);
                     });
 
-                    if(timer != null) {
+                    if (timer != null) {
                         timer.restart();
                     } else {
                         timer = new Timer(1000, actionEvent -> {
-                            if(time > 0) timeLabel.setText(String.valueOf(--time));
+                            if (time > 0) timeLabel.setText(String.valueOf(--time));
                             else {
-                                if(!autoNext) playButton.setEnabled(true);
+                                if (!autoNext) playButton.setEnabled(true);
                                 else {
                                     String response = String.format("%s%03d", Message.NEXT_QUESTION, questionNumber - 1);
                                     Application.connection.send(response);
@@ -118,7 +117,7 @@ public class OwnerView {
                     }
 
 
-                } else if(Objects.equals(type, Message.GAME_END.toString())) {
+                } else if (Objects.equals(type, Message.GAME_END.toString())) {
                     playButton.setEnabled(false);
                     playButton.setText("KONIEC GRY");
                     answerALabel.setText("");
@@ -134,35 +133,33 @@ public class OwnerView {
                         Application.frame.pack();
                     });
                     return;
-                } else if(Objects.equals(type, Message.PLAYERS_RANK.toString())) {
+                } else if (Objects.equals(type, Message.PLAYERS_RANK.toString())) {
                     String content = message.substring(2);
                     int point = Integer.parseInt(content.substring(0, 1));
                     String nick = content.substring(1);
 
                     players.get(nick).setPoints(players.get(nick).getPoints() + point);
                     SwingUtilities.invokeLater(() -> players.get(nick).updateLabel());
-                } else if(Objects.equals(type, Message.OWNER_RANK.toString())) {
+                } else if (Objects.equals(type, Message.OWNER_RANK.toString())) {
                     String content = message.substring(2);
-                    String number = String.valueOf(Integer.parseInt(content.substring(0, 3))+1);
+                    String number = String.valueOf(Integer.parseInt(content.substring(0, 3)) + 1);
                     String answer = content.substring(3, 4).toUpperCase();
                     String nick = content.substring(4);
 
                     SwingUtilities.invokeLater(() -> {
-                        if(Objects.equals(answerCorrectLabel.getText(), answer))
+                        if (Objects.equals(answerCorrectLabel.getText(), answer))
                             players.get(nick).addAnswer("<font color=green>" + number + answer + "</font>");
-                        else if(answer.equals("X"))
+                        else if (answer.equals("X"))
                             players.get(nick).addAnswer(number + answer);
                         else
                             players.get(nick).addAnswer("<font color=red>" + number + answer + "</font>");
                         players.get(nick).getAnswersLabel().setText("<html>" + players.get(nick).getAnswers() + "</html>");
                     });
-                } else if(Objects.equals(type, Message.AUTO_NEXT.toString())) {
+                } else if (Objects.equals(type, Message.AUTO_NEXT.toString())) {
                     String content = message.substring(2, 3);
                     autoNext = (content.equals("y"));
-                    if(autoNext) playButton.setEnabled(false);
-                }
-
-                else {
+                    if (autoNext) playButton.setEnabled(false);
+                } else {
                     System.out.printf("[ERROR] Undefined message (%s)\n", type);
                 }
 

@@ -1,10 +1,5 @@
-//
-// Created by kamil on 08.01.2022.
-//
-
 #ifndef SIECI_PROJEKT_SERVER_H
 #define SIECI_PROJEKT_SERVER_H
-
 
 #include <netinet/in.h>
 #include <unordered_map>
@@ -16,12 +11,13 @@
 
 class Server {
     int socketFd;
+    int port;
     sockaddr_in address;
     std::unordered_map<int, Client> clients; // kluczem deskryptor
     std::vector<pollfd> pollfds;
     std::unordered_map<int, Game> games; // kluczem kod gry
 public:
-    Server();
+    explicit Server(int port);
     void run();
 
 private:

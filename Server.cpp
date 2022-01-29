@@ -11,10 +11,9 @@
 #include "Message.h"
 #include "helpers.h"
 
-#define SERVER_PORT 5050
 #define HEADER 4
 
-Server::Server() : socketFd(0), address({}), clients({}), pollfds({}), games({}) {}
+Server::Server(int _port) : socketFd(0), address({}), clients({}), pollfds({}), games({}), port(_port) {}
 
 size_t Server::getNumberOfClients() const {
     return this->clients.size();
@@ -63,7 +62,7 @@ int Server::connectClient() {
     }
 
     // Dodaj gniazdo klienckie do obserwowanych
-    this->clients[clientSocket] = Client(clientSocket, remoteAddress);
+    this->clients[clientSocket] = Client(remoteAddress);
     printf("[INFO] %zu. client connected with ip: %s and port: %d\n",
            this->getNumberOfClients(),
            inet_ntoa(this->clients[clientSocket].getAddressPointer()->sin_addr),
@@ -119,7 +118,7 @@ void Server::makeAction(std::string &message, const int clientFd) {
             }
 
             // Stwórz grę o podanym kodzie i deskryptorem właściciela
-            this->games[code] = Game(clientFd, code);
+            this->games[code] = Game(clientFd);
             // Przypisz temu klientowi grę o tym kodzie
             this->clients[clientFd].setGameCode(code);
 
@@ -150,7 +149,6 @@ void Server::makeAction(std::string &message, const int clientFd) {
             if (prefix == MESSAGE::QUESTION_QUESTION) {
                 this->games[gameCode].getQuestions().emplace_back();
                 this->games[gameCode].getQuestions().back().setQuestion(message);
-                this->games[gameCode].getQuestions().back().setNumber((int) games[gameCode].getQuestions().size());
             } else if (prefix == MESSAGE::QUESTION_ANSWER_A) {
                 this->games[gameCode].getQuestions().back().setAnswerA(message);
             } else if (prefix == MESSAGE::QUESTION_ANSWER_B) {
@@ -389,7 +387,7 @@ void Server::makeAction(std::string &message, const int clientFd) {
         }
 
         // To już było ostatnie pytanie
-        if ((questionNumber == games[gameCode].getQuestions().size() - 1)) {
+        if ((questionNumber == static_cast<int>(games[gameCode].getQuestions().size() - 1))) {
             for (auto &client: clients) {
                 if (client.second.getGameCode() == gameCode) {
                     sendData(client.first, msgToStr(MESSAGE::GAME_END));
@@ -449,7 +447,7 @@ void Server::run() {
     }
 
     this->address.sin_addr.s_addr = htonl(INADDR_ANY);
-    this->address.sin_port = htons(SERVER_PORT);
+    this->address.sin_port = htons(this->port);
     this->address.sin_family = AF_INET;
 
     if (bind(this->socketFd, (sockaddr *) &this->address, sizeof(sockaddr_in)) == -1) {
@@ -503,7 +501,7 @@ void Server::run() {
 
                 // Odbierz długość wiadomości
                 std::string messageLength;
-                size_t bytes = readData(clientFd, HEADER, messageLength);
+                int bytes = readData(clientFd, HEADER, messageLength);
                 if (bytes == 0) {
                     this->disconnectClient(clientFd, i);
                     pollfds_size = pollfds.size();

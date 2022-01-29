@@ -1,7 +1,3 @@
-//
-// Created by kamil on 28.01.2022.
-//
-
 #ifndef SIECI_PROJEKT_HELPERS_H
 #define SIECI_PROJEKT_HELPERS_H
 
@@ -11,13 +7,13 @@
 #include <cstring>
 #include <sys/socket.h>
 
-size_t readData(int clientFd, int length, std::string &data) {
+int readData(int clientFd, int length, std::string &data) {
     char *message = new char[length];
-    size_t bytes;
-    size_t bytesRead = 0;
+    int bytes;
+    int  bytesRead = 0;
 
     while (bytesRead < length) {
-        bytes = recv(clientFd, message + bytesRead, length - bytesRead, MSG_DONTWAIT);
+        bytes = (int)recv(clientFd, message + bytesRead, length - bytesRead, MSG_DONTWAIT);
 
         if (bytes == -1) {
             delete[] message;
@@ -57,7 +53,7 @@ int stringToInt(const std::string &number) {
 
 }
 
-size_t sendData(int socket, const std::string &data) {
+int sendData(int socket, const std::string &data) {
     if (data.length() > 10000) {
         printf("[ERROR] Message too long\n");
         return -1;
@@ -72,14 +68,14 @@ size_t sendData(int socket, const std::string &data) {
         return -1;
     }
 
-    const size_t length = strlen(buf);
+    const int length = (int) strlen(buf);
 
-    size_t total = 0;
-    size_t bytes;
-    size_t bytesLeft = length;
+    int total = 0;
+    int bytes;
+    int bytesLeft = length;
 
     while (total < length) {
-        bytes = send(socket, buf + total, bytesLeft, MSG_DONTWAIT);
+        bytes = (int) send(socket, buf + total, bytesLeft, MSG_DONTWAIT);
         if (bytes == -1) {
             perror("[ERROR] send()");
             delete[] buf;

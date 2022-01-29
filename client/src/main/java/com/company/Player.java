@@ -3,20 +3,20 @@ package com.company;
 import javax.swing.*;
 
 public class Player {
-    private String nick;
+    private final String nick;
 
     private int points;
-    private JLabel label;
+    private final JLabel label;
 
     private String answers;
-    private JLabel answersLabel;
+    private final JLabel answersLabel;
 
 
     public Player(String nick, int points) {
         this.nick = nick;
         this.points = points;
         this.label = new JLabel();
-        this.answers =  nick + " ";
+        this.answers = nick + " ";
         this.answersLabel = new JLabel(answers);
         this.updateLabel();
     }
@@ -25,16 +25,8 @@ public class Player {
         return answers;
     }
 
-    public void setAnswers(String answers) {
-        this.answers = answers;
-    }
-
     public JLabel getAnswersLabel() {
         return answersLabel;
-    }
-
-    public void setAnswersLabel(JLabel answersLabel) {
-        this.answersLabel = answersLabel;
     }
 
     public void updateLabel() {
@@ -43,14 +35,6 @@ public class Player {
 
     public void addAnswer(String answer) {
         answers += answer + " ";
-    }
-
-    public String getNick() {
-        return nick;
-    }
-
-    public void setNick(String nick) {
-        this.nick = nick;
     }
 
     public int getPoints() {
@@ -63,9 +47,5 @@ public class Player {
 
     public JLabel getLabel() {
         return label;
-    }
-
-    public void setLabel(JLabel label) {
-        this.label = label;
     }
 }

@@ -26,38 +26,42 @@ public class NickView {
             Application.connection.send(Message.NICK_CHOOSING + nick);
             String message = Application.connection.receive();
 
-            if(Objects.equals(message, Message.NICK_USED.toString())) {
+            if(Objects.equals(message, Message.NICK_OK.toString())) {
+                Application.userNick = nick;
+                nickTextField.setVisible(false);
+                playButton.setVisible(false);
+                infoField.setText("Oczekiwanie na rozpoczęcie gry");
+                Thread gameStarter = new Thread(new GameStarter());
+                gameStarter.start();
+            }
+            else if(Objects.equals(message, Message.NICK_USED.toString())) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Pseudonim zajęty! Proszę wybrać inny",
                         "Błąd",
                         JOptionPane.INFORMATION_MESSAGE);
-                return;
             } else if(Objects.equals(message, Message.GAME_ALREADY_STARTED.toString())) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Gra już się toczy!",
                         "Błąd",
                         JOptionPane.INFORMATION_MESSAGE);
-                return;
             } else if(Objects.equals(message, Message.GAME_NOT_EXISTS.toString())) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Ta gra została zakończona",
                         "Błąd",
                         JOptionPane.INFORMATION_MESSAGE);
-                return;
-            } else if(!Objects.equals(message, Message.NICK_OK.toString())) {
+            } else if(Objects.equals(message, Message.CONNECTION_LOST.toString())) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Utracono połączenie!",
+                        "Błąd",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+            else {
                 System.out.printf("[ERROR] Undefined message (%s)\n", message);
             }
-
-            Application.userNick = nick;
-
-            nickTextField.setVisible(false);
-            playButton.setVisible(false);
-            infoField.setText("Oczekiwanie na rozpoczęcie gry");
-            Thread gameStarter = new Thread(new GameStarter());
-            gameStarter.start();
         });
     }
 
@@ -69,12 +73,14 @@ public class NickView {
             SwingUtilities.invokeLater(() -> {
                 if(Objects.equals(gameStart, Message.GAME_START.toString())) {
                     Application.frame.setApplicationPanel(new GameView().panel);
-                } else {
+                } else if(Objects.equals(gameStart, Message.CONNECTION_LOST.toString())) {
                     JOptionPane.showMessageDialog(
                             null,
-                            "Wystąpił nieoczekiwany błąd :(",
+                            "Utracono połączenie!",
                             "Błąd",
-                            JOptionPane.INFORMATION_MESSAGE);
+                            JOptionPane.ERROR_MESSAGE);
+                }
+                else {
                     System.out.printf("[ERROR] Message (%s) unknown\n", gameStart);
                 }
             });

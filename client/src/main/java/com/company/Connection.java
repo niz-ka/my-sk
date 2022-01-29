@@ -20,13 +20,13 @@ public class Connection {
             in.close();
             out.close();
             socket.close();
-        } catch(java.io.IOException ex) {
+        } catch (java.io.IOException ex) {
             System.out.println("[Exception] close()" + ex);
         }
     }
 
     public void send(String message) {
-        if(message.length() >= 10000) {
+        if (message.length() >= 10000) {
             System.out.println("[ERROR] Message too long");
             return;
         }
@@ -35,8 +35,7 @@ public class Connection {
 
         try {
             out.write(message.getBytes());
-        }
-        catch(java.io.IOException ex) {
+        } catch (java.io.IOException ex) {
             System.out.println("[Exception] write()" + ex);
         }
     }
@@ -45,7 +44,7 @@ public class Connection {
         try {
             int length = Integer.parseInt(new String(in.readNBytes(4)));
             return new String(in.readNBytes(length));
-        } catch(java.io.IOException ex) {
+        } catch (java.io.IOException ex) {
             System.out.println("[Exception] read" + ex);
             return null;
         }

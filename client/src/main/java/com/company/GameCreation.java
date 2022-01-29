@@ -34,7 +34,7 @@ public class GameCreation {
         timeField.setText("30");
 
         newQuestionButton.addActionListener(actionEvent -> {
-            if(question.getText().isEmpty() ||
+            if (question.getText().isEmpty() ||
                     answerA.getText().isEmpty() ||
                     answerB.getText().isEmpty() ||
                     answerC.getText().isEmpty() ||
@@ -48,7 +48,7 @@ public class GameCreation {
                 return;
             }
 
-            if(!timeField.getText().matches("\\d+")) {
+            if (!timeField.getText().matches("\\d+")) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Czas musi być liczbą całkowitą!",
@@ -58,7 +58,7 @@ public class GameCreation {
             }
 
             int time = Integer.parseInt(timeField.getText());
-            if(time < 10 || time > 300) {
+            if (time < 10 || time > 300) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Czas musi być z zakresu 10-300",
@@ -89,7 +89,7 @@ public class GameCreation {
         });
 
         createButton.addActionListener(actionEvent -> {
-            if(questions.size() == 0) {
+            if (questions.size() == 0) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Proszę dodać co najmniej 1 pytanie.",
@@ -98,7 +98,7 @@ public class GameCreation {
                 return;
             }
 
-            if(questions.size() > 100) {
+            if (questions.size() > 100) {
                 JOptionPane.showMessageDialog(
                         null,
                         "Dodano za dużo pytań",
@@ -111,7 +111,7 @@ public class GameCreation {
 
             Application.connection.send(Message.QUESTION.toString() + Message.QUESTION_START);
             Application.connection.send(Message.QUESTION.toString() + Message.AUTO_NEXT + autoNextQuestion);
-            for(Question question : questions) {
+            for (Question question : questions) {
                 String prefix = Message.QUESTION.toString();
                 Application.connection.send(prefix + Message.QUESTION_QUESTION + question.getQuestion());
                 Application.connection.send(prefix + Message.QUESTION_ANSWER_A + question.getAnswerA());
