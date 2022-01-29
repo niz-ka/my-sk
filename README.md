@@ -11,3 +11,5 @@ Najprościej przez JAR w folderze *target*. Ale najpierw należy w tym JAR nale�
 
     app.address=<IP serwera>
     app.port=<port serwera>
+
+**Uwaga**: z jakiegoś powodu nie wystarczy JRE tylko należy zainstalować JDK.
